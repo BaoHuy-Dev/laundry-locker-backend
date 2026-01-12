@@ -157,12 +157,22 @@
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
-<!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis &ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
-<!--            <version>4.0.0</version>-->
-<!--        </dependency>-->
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- Rate Limiting - Bucket4j -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+        <!-- Spring Boot Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -186,6 +196,12 @@
             <artifactId>p6spy-spring-boot-starter</artifactId>
             <version>1.12.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 
