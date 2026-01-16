@@ -8,15 +8,18 @@ import jakarta.persistence.PreUpdate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@SuperBuilder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @MappedSuperclass
@@ -31,6 +34,7 @@ public abstract class BaseModel {
   @Column(name = "deleted_at")
   LocalDateTime deletedAt;
 
+  @Builder.Default
   @Column(name = "delete_flag")
   Boolean deleteFlag = false;
 

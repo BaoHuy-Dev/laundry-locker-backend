@@ -1,3 +1,89 @@
 package com.huynqb.laundrylockerbackend.core.exception;
 
-public class GlobalExceptionHandler {}
+import com.huynqb.laundrylockerbackend.core.constant.MessageConstants;
+import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
+import com.huynqb.laundrylockerbackend.core.i18n.MessageService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+@Slf4j
+@RequiredArgsConstructor
+public class GlobalExceptionHandler {
+
+  private final MessageService messageService;
+
+  private ApiResponse<Void> buildErrorResponse(String code, String message) {
+
+    return ApiResponse.<Void>builder().success(false).code(code).message(message).build();
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
+    log.error("Unexpected error", ex);
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM001, messageService.get(MessageConstants.E_COM001)));
+  }
+
+  @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
+  public ResponseEntity<ApiResponse<Void>> handleValidation(Exception ex) {
+    log.warn("Validation error: {}", ex.getMessage());
+
+    return ResponseEntity.badRequest()
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM002, messageService.get(MessageConstants.E_COM002)));
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+    log.warn("Access denied: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM003, messageService.get(MessageConstants.E_COM003)));
+  }
+
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleAuthentication(AuthenticationException ex) {
+    log.warn("Authentication failed: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM004, messageService.get(MessageConstants.E_COM004)));
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+    log.warn("Illegal argument: {}", ex.getMessage());
+
+    return ResponseEntity.badRequest()
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM005, messageService.get(MessageConstants.E_COM005)));
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+    log.warn("Bad credentials: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(
+            buildErrorResponse(
+                MessageConstants.E_COM004, messageService.get(MessageConstants.E_COM004)));
+  }
+}
