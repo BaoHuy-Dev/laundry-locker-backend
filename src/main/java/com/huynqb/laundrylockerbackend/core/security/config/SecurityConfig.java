@@ -1,15 +1,17 @@
 package com.huynqb.laundrylockerbackend.core.security.config;
 
-import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationFailureHandler;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationSuccessHandler;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtAuthenticationFilter;
 import com.huynqb.laundrylockerbackend.core.security.oauth2.CustomOAuth2UserService;
 import com.huynqb.laundrylockerbackend.core.security.oauth2.CustomOidcUserService;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -24,12 +26,25 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Central Spring Security configuration.
+ *
+ * <p>Defines:
+ *
+ * <ul>
+ *   <li>Multiple ordered {@link SecurityFilterChain}
+ *   <li>JWT-based stateless authentication
+ *   <li>OAuth2 / OIDC login configuration
+ *   <li>Authorization and CORS rules
+ * </ul>
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+  // ==================== Dependencies ====================
   private final CustomOAuth2UserService customOAuth2UserService;
   private final CustomOidcUserService customOidcUserService;
   private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
@@ -38,72 +53,164 @@ public class SecurityConfig {
   private final com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter
       emailVerificationFilter;
 
-  @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    String loginUrl =
-        UriParamConstants.ROOT_URI_AUTH + UriParamConstants.LOGIN; // "/api/auth/login"
+  // ==================== Configuration Properties ====================
+  @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
+  private String allowedOrigins;
 
-    http.csrf(csrf -> csrf.disable())
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+  @Value("${app.security.cors.allowed-methods:GET,POST,PUT,DELETE,PATCH,OPTIONS}")
+  private String allowedMethods;
+
+  @Value("${app.security.cors.max-age:3600}")
+  private long corsMaxAge;
+
+  // ==================== Public Endpoints ====================
+  private static final String[] PUBLIC_ENDPOINTS = {"/", "/error", "/favicon.ico"};
+
+  private static final String[] AUTH_ENDPOINTS = {"/api/auth/**", "/oauth2/**", "/login/oauth2/**"};
+
+  private static final String[] SWAGGER_ENDPOINTS = {
+    "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**"
+  };
+
+  private static final String[] ACTUATOR_PUBLIC_ENDPOINTS = {"/actuator/health", "/actuator/info"};
+
+  // ==================== Security Filter Chains ====================
+
+  /**
+   * Actuator security configuration.
+   *
+   * <p>Health and info are public; other endpoints require ADMIN role.
+   */
+  @Bean
+  @Order(1)
+  public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+    http.securityMatcher("/actuator/**")
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(
-                        "/",
-                        "/error",
-                        "/api/auth/**",
-                        "/oauth2/**",
-                        "/login/oauth2/**",
-                        "/favicon.ico",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/actuator/**")
+                auth.requestMatchers(ACTUATOR_PUBLIC_ENDPOINTS)
                     .permitAll()
-                    .requestMatchers("/api/admin/**")
-                    .hasRole("ADMIN")
-                    .requestMatchers("/api/user/**")
-                    .hasAnyRole("USER", "ADMIN")
                     .anyRequest()
-                    .authenticated())
-        .oauth2Login(
-            oauth2 ->
-                oauth2
-                    .loginPage(loginUrl)
-                    .userInfoEndpoint(
-                        userInfo ->
-                            userInfo
-                                .userService(customOAuth2UserService)
-                                .oidcUserService(customOidcUserService))
-                    .successHandler(oAuth2AuthenticationSuccessHandler)
-                    .failureHandler(oAuth2AuthenticationFailureHandler))
+                    .hasRole("ADMIN"))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .csrf(csrf -> csrf.disable());
+
+    return http.build();
+  }
+
+  /** Main application security configuration. */
+  @Bean
+  @Order(2)
+  public SecurityFilterChain mainSecurityFilterChain(HttpSecurity http) throws Exception {
+    http
+        // Disable CSRF for stateless APIs
+        .csrf(csrf -> csrf.disable())
+
+        // Apply CORS configuration
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+        // Use stateless session management
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+        // Configure authorization rules
+        .authorizeHttpRequests(this::configureAuthorization)
+
+        // Configure OAuth2 / OIDC login
+        .oauth2Login(this::configureOAuth2)
+
+        // Logout configuration
         .logout(logout -> logout.logoutSuccessUrl("/").permitAll())
-        // Add filters in order: JWT first, then Email Verification
+
+        // JWT authentication filter
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+        // Email verification filter
         .addFilterAfter(emailVerificationFilter, JwtAuthenticationFilter.class);
 
     return http.build();
   }
 
+  // ==================== Configuration Methods ====================
+
+  /** Defines authorization rules for HTTP requests. */
+  private void configureAuthorization(
+      org.springframework.security.config.annotation.web.configurers
+                      .AuthorizeHttpRequestsConfigurer<
+                  HttpSecurity>
+              .AuthorizationManagerRequestMatcherRegistry
+          auth) {
+    auth
+        // Public endpoints
+        .requestMatchers(PUBLIC_ENDPOINTS)
+        .permitAll()
+        .requestMatchers(AUTH_ENDPOINTS)
+        .permitAll()
+        .requestMatchers(SWAGGER_ENDPOINTS)
+        .permitAll()
+
+        // Role-based access control
+        .requestMatchers("/api/admin/**")
+        .hasRole("ADMIN")
+        .requestMatchers("/api/user/**")
+        .hasAnyRole("USER", "ADMIN")
+
+        // Require authentication for all other requests
+        .anyRequest()
+        .authenticated();
+  }
+
+  /** Configures OAuth2 and OIDC login behavior. */
+  private void configureOAuth2(
+      org.springframework.security.config.annotation.web.configurers.oauth2.client
+                  .OAuth2LoginConfigurer<
+              HttpSecurity>
+          oauth2) {
+    oauth2
+        .userInfoEndpoint(
+            userInfo ->
+                userInfo
+                    .userService(customOAuth2UserService)
+                    .oidcUserService(customOidcUserService))
+        .successHandler(oAuth2AuthenticationSuccessHandler)
+        .failureHandler(oAuth2AuthenticationFailureHandler);
+  }
+
+  // ==================== Beans ====================
+
+  /** Password encoder bean. */
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
+  /** Authentication manager bean. */
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
       throws Exception {
     return authConfig.getAuthenticationManager();
   }
 
+  /** CORS configuration source. */
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8080"));
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+
+    // Allowed origins
+    List<String> origins = Arrays.asList(allowedOrigins.split(","));
+    configuration.setAllowedOrigins(origins);
+
+    // Allowed HTTP methods
+    List<String> methods = Arrays.asList(allowedMethods.split(","));
+    configuration.setAllowedMethods(methods);
+
+    // Common CORS settings
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);
-    configuration.setMaxAge(3600L);
+    configuration.setMaxAge(corsMaxAge);
+
+    // Exposed headers
+    configuration.setExposedHeaders(List.of("Authorization", "X-Total-Count"));
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
