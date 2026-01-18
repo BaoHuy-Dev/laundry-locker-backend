@@ -1,0 +1,18 @@
+
+services:
+  DB:
+    container_name: laundry_locker_DB
+    image: postgres:13.22-alpine3.22
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: laundry_locker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+    ports:
+      - "5432:5432"
+    volumes:
+        - laundry_locker_DB:/var/lib/postgresql/data
+        - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  laundry_locker_DB: {}
