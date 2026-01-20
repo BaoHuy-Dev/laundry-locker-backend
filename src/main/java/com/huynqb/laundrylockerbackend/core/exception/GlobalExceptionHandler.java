@@ -3,6 +3,7 @@ package com.huynqb.laundrylockerbackend.core.exception;
 import com.huynqb.laundrylockerbackend.core.constant.MessageConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.i18n.MessageService;
+import com.huynqb.laundrylockerbackend.module.auth.exception.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -85,5 +86,13 @@ public class GlobalExceptionHandler {
         .body(
             buildErrorResponse(
                 MessageConstants.E_COM004, messageService.get(MessageConstants.E_COM004)));
+  }
+
+  @ExceptionHandler(FirebaseAuthException.class)
+  public ResponseEntity<ApiResponse<Void>> handleFirebaseAuth(FirebaseAuthException ex) {
+    log.warn("Firebase auth failed: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(buildErrorResponse(ex.getCode(), messageService.get(ex.getCode())));
   }
 }

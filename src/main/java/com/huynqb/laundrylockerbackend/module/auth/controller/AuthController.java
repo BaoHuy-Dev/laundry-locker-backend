@@ -4,29 +4,28 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.i18n.MessageService;
-import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
-import com.huynqb.laundrylockerbackend.module.auth.dto.request.LoginRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.CompleteRegistrationRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegistrationRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
-import com.huynqb.laundrylockerbackend.module.auth.dto.request.RegisterRequest;
-import com.huynqb.laundrylockerbackend.module.auth.dto.request.ResendVerificationRequest;
-import com.huynqb.laundrylockerbackend.module.auth.dto.request.ResetPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.AuthResponse;
+import com.huynqb.laundrylockerbackend.module.auth.dto.response.EmailLoginResponse;
+import com.huynqb.laundrylockerbackend.module.auth.dto.response.PhoneLoginResponse;
 import com.huynqb.laundrylockerbackend.module.auth.service.AuthService;
-import com.huynqb.laundrylockerbackend.module.auth.service.EmailVerificationService;
-import com.huynqb.laundrylockerbackend.module.auth.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * AuthController - REST API endpoints for authentication Includes: Login, Register, Refresh Token,
- * Logout, Email Verification, Password Reset
+ * AuthController - REST API endpoints for phone and email OTP authentication. Supports: Phone
+ * Login, Email OTP, Complete Registration, Refresh Token, Logout.
  */
 @Tag(name = TagConstants.ROOT_TAG_AUTH)
 @RequestMapping(UriParamConstants.ROOT_URI_AUTH)
@@ -36,46 +35,126 @@ public class AuthController {
 
   private final AuthService authService;
   private final MessageService messageService;
-  private final EmailVerificationService emailVerificationService;
-  private final PasswordResetService passwordResetService;
 
-  @Value("${app.frontend.url:http://localhost:3000}")
-  private String frontendUrl;
+  // ===== Phone Authentication Endpoints =====
 
-  // ===== Authentication Endpoints =====
-
-  /** Login endpoint */
-  @Operation(summary = "Login", description = "Authenticate the user and return JWT tokens")
-  @PostMapping(UriParamConstants.LOGIN)
-  public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-    AuthResponse authResponse = authService.login(request);
-
-    return ResponseEntity.ok(
-        ApiResponse.<AuthResponse>builder()
-            .success(true)
-            .code("AUTH_LOGIN_SUCCESS")
-            .message(messageService.get("AUTH_LOGIN_SUCCESS"))
-            .data(authResponse)
-            .build());
-  }
-
-  /** Register new user endpoint */
+  /** Phone login endpoint - authenticate with Firebase ID token */
   @Operation(
-      summary = "Register",
-      description = "Create a new account and send a verification email")
-  @PostMapping(UriParamConstants.REGISTER)
-  public ResponseEntity<ApiResponse<AuthResponse>> register(
-      @Valid @RequestBody RegisterRequest request) {
-    AuthResponse authResponse = authService.register(request);
+      summary = "Phone Login",
+      description = "Authenticate or register user using Firebase phone verification")
+  @PostMapping(UriParamConstants.PHONE_LOGIN)
+  public ResponseEntity<ApiResponse<PhoneLoginResponse>> phoneLogin(
+      @Valid @RequestBody PhoneLoginRequest request) {
+
+    PhoneLoginResponse response = authService.phoneLogin(request);
+
+    String code = response.isNewUser() ? "AUTH_PHONE_NEW_USER" : "AUTH_PHONE_LOGIN_SUCCESS";
+    String message =
+        response.isNewUser()
+            ? "Số điện thoại chưa đăng ký. Vui lòng hoàn tất thông tin."
+            : messageService.get("AUTH_PHONE_LOGIN_SUCCESS");
+
+    return ResponseEntity.ok(
+        ApiResponse.<PhoneLoginResponse>builder()
+            .success(true)
+            .code(code)
+            .message(message)
+            .data(response)
+            .build());
+  }
+
+  /** Complete registration for new phone users */
+  @Operation(
+      summary = "Complete Registration",
+      description = "Complete registration for new phone users with profile info")
+  @PostMapping(UriParamConstants.COMPLETE_REGISTRATION)
+  public ResponseEntity<ApiResponse<AuthResponse>> completeRegistration(
+      @Valid @RequestBody CompleteRegistrationRequest request) {
+
+    AuthResponse authResponse = authService.completeRegistration(request);
 
     return ResponseEntity.ok(
         ApiResponse.<AuthResponse>builder()
             .success(true)
-            .code("AUTH_REGISTER_SUCCESS")
-            .message(messageService.get("AUTH_REGISTER_SUCCESS"))
+            .code("AUTH_REGISTRATION_COMPLETE")
+            .message("Đăng ký thành công!")
             .data(authResponse)
             .build());
   }
+
+  // ===== Email OTP Authentication Endpoints =====
+
+  /** Send OTP to email */
+  @Operation(summary = "Send Email OTP", description = "Send OTP code to email for authentication")
+  @PostMapping(UriParamConstants.EMAIL_SEND_OTP)
+  public ResponseEntity<ApiResponse<Void>> sendEmailOtp(
+      @Valid @RequestBody EmailSendOtpRequest request) {
+
+    boolean sent = authService.sendEmailOtp(request);
+
+    if (sent) {
+      return ResponseEntity.ok(
+          ApiResponse.<Void>builder()
+              .success(true)
+              .code("AUTH_OTP_SENT")
+              .message("Mã OTP đã được gửi đến email của bạn.")
+              .build());
+    } else {
+      return ResponseEntity.internalServerError()
+          .body(
+              ApiResponse.<Void>builder()
+                  .success(false)
+                  .code("AUTH_OTP_SEND_FAILED")
+                  .message("Không thể gửi OTP. Vui lòng thử lại sau.")
+                  .build());
+    }
+  }
+
+  /** Verify email OTP and login */
+  @Operation(
+      summary = "Verify Email OTP",
+      description = "Verify OTP and login/register user via email")
+  @PostMapping(UriParamConstants.EMAIL_VERIFY_OTP)
+  public ResponseEntity<ApiResponse<EmailLoginResponse>> verifyEmailOtp(
+      @Valid @RequestBody EmailVerifyOtpRequest request) {
+
+    EmailLoginResponse response = authService.verifyEmailOtp(request);
+
+    String code = response.isNewUser() ? "AUTH_EMAIL_NEW_USER" : "AUTH_EMAIL_LOGIN_SUCCESS";
+    String message =
+        response.isNewUser()
+            ? "Email chưa đăng ký. Vui lòng hoàn tất thông tin."
+            : "Đăng nhập thành công!";
+
+    return ResponseEntity.ok(
+        ApiResponse.<EmailLoginResponse>builder()
+            .success(true)
+            .code(code)
+            .message(message)
+            .data(response)
+            .build());
+  }
+
+  /** Complete registration for new email users */
+  @Operation(
+      summary = "Complete Email Registration",
+      description = "Complete registration for new email users with profile info")
+  @PostMapping(UriParamConstants.EMAIL_COMPLETE_REGISTRATION)
+  public ResponseEntity<ApiResponse<AuthResponse>> emailCompleteRegistration(
+      @Valid @RequestBody EmailCompleteRegistrationRequest request) {
+
+    AuthResponse authResponse = authService.emailCompleteRegistration(request);
+
+    return ResponseEntity.ok(
+        ApiResponse.<AuthResponse>builder()
+            .success(true)
+            .code("AUTH_REGISTRATION_COMPLETE")
+            .message("Đăng ký thành công!")
+            .data(authResponse)
+            .build());
+  }
+
+  // ===== Token Management Endpoints =====
 
   /** Refresh access token endpoint */
   @Operation(
@@ -109,112 +188,6 @@ public class AuthController {
             .success(true)
             .code("AUTH_LOGOUT_SUCCESS")
             .message(messageService.get("AUTH_LOGOUT_SUCCESS"))
-            .build());
-  }
-
-  // ===== Email Verification Endpoints =====
-
-  /** Verify email endpoint (called from email link) */
-  @Operation(
-      summary = "Email verification",
-      description = "Verify the user's email address using the link sent via email")
-  @GetMapping(UriParamConstants.VERIFY_EMAIL)
-  public ResponseEntity<String> verifyEmail(@RequestParam String token) {
-    boolean verified = emailVerificationService.verifyEmail(token);
-
-    if (verified) {
-      // Redirect to frontend success page
-      return ResponseEntity.status(302)
-          .header("Location", frontendUrl + "/email-verified?success=true")
-          .build();
-    } else {
-      // Redirect to frontend error page
-      return ResponseEntity.status(302)
-          .header("Location", frontendUrl + "/email-verified?success=false&error=invalid_token")
-          .build();
-    }
-  }
-
-  /** Resend verification email endpoint */
-  @Operation(
-      summary = "Resend verification email",
-      description = "Resend the verification email to the user")
-  @PostMapping(UriParamConstants.RESEND_VERIFICATION)
-  public ResponseEntity<ApiResponse<Void>> resendVerification(
-      @Valid @RequestBody ResendVerificationRequest request) {
-
-    boolean sent = emailVerificationService.resendVerificationEmail(request.getEmail());
-
-    // Always return success to prevent email enumeration
-    return ResponseEntity.ok(
-        ApiResponse.<Void>builder()
-            .success(true)
-            .code("AUTH_VERIFICATION_SENT")
-            .message(messageService.get("AUTH_VERIFICATION_SENT"))
-            .build());
-  }
-
-  // ===== Password Reset Endpoints =====
-
-  /** Forgot password endpoint - initiate password reset */
-  @Operation(summary = "Forgot password", description = "Send a password reset email")
-  @PostMapping(UriParamConstants.FORGET_PASSWORD)
-  public ResponseEntity<ApiResponse<Void>> forgotPassword(
-      @Valid @RequestBody ForgotPasswordRequest request) {
-
-    passwordResetService.initiatePasswordReset(request.getEmail());
-
-    // Always return success to prevent email enumeration
-    return ResponseEntity.ok(
-        ApiResponse.<Void>builder()
-            .success(true)
-            .code("AUTH_RESET_EMAIL_SENT")
-            .message(messageService.get("AUTH_RESET_EMAIL_SENT"))
-            .build());
-  }
-
-  /** Reset password endpoint - set new password */
-  @Operation(summary = "Reset password", description = "Set a new password using a reset token")
-  @PostMapping(UriParamConstants.RESET_PASSWORD)
-  public ResponseEntity<ApiResponse<Void>> resetPassword(
-      @Valid @RequestBody ResetPasswordRequest request) {
-
-    // Validate password confirmation
-    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-      return ResponseEntity.badRequest()
-          .body(
-              ApiResponse.<Void>builder()
-                  .success(false)
-                  .code("E_VALIDATION002")
-                  .message(messageService.get("E_VALIDATION002"))
-                  .build());
-    }
-
-    passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-
-    return ResponseEntity.ok(
-        ApiResponse.<Void>builder()
-            .success(true)
-            .code("AUTH_PASSWORD_RESET_SUCCESS")
-            .message(messageService.get("AUTH_PASSWORD_RESET_SUCCESS"))
-            .build());
-  }
-
-  /** Validate reset token endpoint (for frontend to check before showing form) */
-  @Operation(
-      summary = "Validate reset token",
-      description = "Check whether the password reset token is valid")
-  @GetMapping(UriParamConstants.VALIDATE_RESET_TOKEN)
-  public ResponseEntity<ApiResponse<Boolean>> validateResetToken(@RequestParam String token) {
-    boolean valid = passwordResetService.validateResetToken(token);
-
-    return ResponseEntity.ok(
-        ApiResponse.<Boolean>builder()
-            .success(true)
-            .code(valid ? "TOKEN_VALID" : "TOKEN_INVALID")
-            .message(
-                valid ? messageService.get("TOKEN_VALID") : messageService.get("TOKEN_INVALID"))
-            .data(valid)
             .build());
   }
 

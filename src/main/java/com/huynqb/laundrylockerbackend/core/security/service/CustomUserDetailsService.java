@@ -25,16 +25,21 @@ public class CustomUserDetailsService implements UserDetailsService {
 
   @Override
   @Transactional(readOnly = true)
-  public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-    log.debug("Loading user by email: {}", email);
+  public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+    log.debug("Loading user by identifier: {}", identifier);
 
+    // Try email first, then phone number
     User user =
         userRepository
-            .findByEmail(email)
-            .orElseThrow(
-                () -> new UsernameNotFoundException("User not found with email: " + email));
+            .findByEmail(identifier)
+            .or(() -> userRepository.findByPhoneNumber(identifier))
+            .orElseThrow(() -> new UsernameNotFoundException("User not found with: " + identifier));
 
-    log.debug("User found: id={}, email={}", user.getId(), user.getEmail());
+    log.debug(
+        "User found: id={}, email={}, phone={}",
+        user.getId(),
+        user.getEmail(),
+        user.getPhoneNumber());
     log.debug("User roles count: {}", user.getRoles() != null ? user.getRoles().size() : 0);
 
     // Log each role
@@ -50,10 +55,12 @@ public class CustomUserDetailsService implements UserDetailsService {
             .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName.name()))
             .collect(Collectors.toList());
 
-    log.info("User {} authorities: {}", email, authorities);
+    // Use email or phone as username
+    String username = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
+    log.info("User {} authorities: {}", username, authorities);
 
     return org.springframework.security.core.userdetails.User.builder()
-        .username(user.getEmail())
+        .username(username)
         .password(user.getPassword() != null ? user.getPassword() : "")
         .authorities(authorities)
         .accountExpired(false)

@@ -75,10 +75,12 @@ public class UserController {
   private User extractUserFromPrincipal(Object principal) {
     if (principal instanceof UserDetails) {
       // JWT Authentication - principal is UserDetails
-      String email = ((UserDetails) principal).getUsername();
+      // Username can be email OR phone number
+      String identifier = ((UserDetails) principal).getUsername();
       return userRepository
-          .findByEmail(email)
-          .orElseThrow(() -> new RuntimeException("User not found: " + email));
+          .findByEmail(identifier)
+          .or(() -> userRepository.findByPhoneNumber(identifier))
+          .orElseThrow(() -> new RuntimeException("User not found: " + identifier));
     } else if (principal instanceof CustomOidcUser) {
       // OAuth2 OIDC (Google)
       return ((CustomOidcUser) principal).getUser();

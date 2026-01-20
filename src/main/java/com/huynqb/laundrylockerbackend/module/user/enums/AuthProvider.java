@@ -5,5 +5,7 @@ public enum AuthProvider {
   GOOGLE,
   FACEBOOK,
   GITHUB,
-  ZALO
+  ZALO,
+  PHONE,
+  EMAIL
 }
