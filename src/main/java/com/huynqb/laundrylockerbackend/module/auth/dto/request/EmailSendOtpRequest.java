@@ -2,30 +2,21 @@ package com.huynqb.laundrylockerbackend.module.auth.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** DTO for user registration request */
+/** DTO for requesting OTP to be sent to email. */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RegisterRequest {
+public class EmailSendOtpRequest {
 
   @NotBlank(message = "Email is required")
   @Email(message = "Invalid email format")
   private String email;
-
-  @NotBlank(message = "Password is required")
-  @Size(min = 6, max = 50, message = "Password must be between 6 and 50 characters")
-  private String password;
-
-  @NotBlank(message = "Name is required")
-  @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
-  private String name;
 }

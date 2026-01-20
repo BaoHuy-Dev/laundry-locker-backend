@@ -49,14 +49,16 @@ public class JwtTokenProvider {
   }
 
   /**
-   * Generate JWT token from User entity
+   * Generate JWT token from User entity. Uses email or phone number as subject.
    *
    * @param user User entity
    * @return JWT token string
    */
   public String generateTokenFromUser(User user) {
+    // Use phone number as subject if email is null (phone-only users)
+    String subject = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
     return generateToken(
-        user.getEmail(),
+        subject,
         user.getRoles().stream()
             .map(Role::getName)
             .map(roleName -> "ROLE_" + roleName.name())

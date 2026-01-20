@@ -16,4 +16,12 @@ public class MessageConstants {
   public static final String E_COM003 = "E_COM003";
   public static final String E_COM004 = "E_COM004";
   public static final String E_COM005 = "E_COM005";
+
+  // Phone authentication errors
+  public static final String E_PHONE001 = "E_PHONE001";
+  public static final String E_PHONE002 = "E_PHONE002";
+
+  // Email OTP authentication errors
+  public static final String E_AUTH005 = "E_AUTH005"; // User already exists
+  public static final String E_AUTH006 = "E_AUTH006"; // Invalid or expired OTP
 }

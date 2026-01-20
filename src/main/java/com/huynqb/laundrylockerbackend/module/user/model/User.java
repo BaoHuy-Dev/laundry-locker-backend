@@ -15,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -37,16 +38,22 @@ public class User extends BaseModel {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false, unique = true)
+  @Column(unique = true) // Nullable for phone-only users
   private String email;
 
-  private String name;
+  private String name; // Deprecated - use firstName + lastName
+
+  private String firstName;
+
+  private String lastName;
+
+  private LocalDate birthday;
 
   @Column(length = 1000)
   private String imageUrl;
 
   @Column(length = 500)
-  private String password; // Nullable for OAuth2 users
+  private String password; // Nullable for phone users
 
   @Enumerated(EnumType.STRING)
   private AuthProvider provider;
@@ -56,6 +63,11 @@ public class User extends BaseModel {
   @Builder.Default
   @Column(nullable = false)
   private Boolean emailVerified = false;
+
+  @Builder.Default private Boolean phoneVerified = false;
+
+  @Column(unique = true)
+  private String phoneNumber;
 
   @Builder.Default
   @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)

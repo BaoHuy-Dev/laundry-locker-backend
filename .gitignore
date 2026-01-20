@@ -31,3 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Document
+src/main/resources/docs/
+
+
+
+### Sensitive Credentials (CRITICAL - NEVER COMMIT) ###
+**/firebase-service-account.json
+**/firebase-service-account*.json
+**/service-account*.json
+**/*-credentials.json
+*.pem
+*.p12
+*.key
