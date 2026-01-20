@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.order.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
+import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
@@ -8,6 +10,8 @@ import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderReque
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderService;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,8 +30,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for order management. */
+@Tag(name = TagConstants.ROOT_TAG_ORDERS)
+@RequestMapping(UriParamConstants.ROOT_URI_ORDERS)
 @RestController
-@RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
 
@@ -36,6 +41,7 @@ public class OrderController {
   private final ResponseHelper responseHelper;
 
   /** Create a new order. */
+  @Operation(summary = "Create Order", description = "Create a new laundry order")
   @PostMapping
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> createOrder(
@@ -48,6 +54,9 @@ public class OrderController {
   }
 
   /** Get all orders (paginated). */
+  @Operation(
+      summary = "Get All Orders",
+      description = "Retrieve all orders with pagination (Admin/Staff only)")
   @GetMapping
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<Page<OrderResponse>>> getOrders(Pageable pageable) {
@@ -56,7 +65,8 @@ public class OrderController {
   }
 
   /** Get order by ID. */
-  @GetMapping("/{orderId}")
+  @Operation(summary = "Get Order By ID", description = "Retrieve order details by order ID")
+  @GetMapping(UriParamConstants.BY_ORDER_ID)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long orderId) {
     OrderResponse response = orderService.getOrderById(orderId);
@@ -64,7 +74,8 @@ public class OrderController {
   }
 
   /** Get order by PIN code. */
-  @GetMapping("/pin/{pinCode}")
+  @Operation(summary = "Get Order By PIN", description = "Retrieve order details by PIN code")
+  @GetMapping(UriParamConstants.BY_PIN_CODE)
   public ResponseEntity<ApiResponse<OrderResponse>> getOrderByPinCode(
       @PathVariable String pinCode) {
     OrderResponse response = orderService.getOrderByPinCode(pinCode);
@@ -72,7 +83,10 @@ public class OrderController {
   }
 
   /** Checkout an order (payment). */
-  @PostMapping("/{orderId}/checkout")
+  @Operation(
+      summary = "Checkout Order",
+      description = "Process payment and complete order checkout")
+  @PostMapping(UriParamConstants.CHECKOUT)
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<PaymentResponse>> checkoutOrder(
       @PathVariable Long orderId,
@@ -84,7 +98,8 @@ public class OrderController {
   }
 
   /** Collect order from locker (staff). */
-  @PutMapping("/{orderId}/collect")
+  @Operation(summary = "Collect Order", description = "Staff collects order items from locker")
+  @PutMapping(UriParamConstants.COLLECT)
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<OrderResponse>> collectOrder(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
@@ -94,7 +109,8 @@ public class OrderController {
   }
 
   /** Return processed order to locker. */
-  @PutMapping("/{orderId}/return")
+  @Operation(summary = "Return Order", description = "Return processed order items to locker")
+  @PutMapping(UriParamConstants.RETURN)
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<OrderResponse>> returnOrder(
       @PathVariable Long orderId,
@@ -106,7 +122,8 @@ public class OrderController {
   }
 
   /** Cancel an order. */
-  @PutMapping("/{orderId}/cancel")
+  @Operation(summary = "Cancel Order", description = "Cancel an existing order")
+  @PutMapping(UriParamConstants.CANCEL)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
       @PathVariable Long orderId, @RequestParam(required = false) Integer reason) {
@@ -115,7 +132,10 @@ public class OrderController {
   }
 
   /** Confirm order - Customer confirms items placed in locker. */
-  @PutMapping("/{orderId}/confirm")
+  @Operation(
+      summary = "Confirm Order",
+      description = "Customer confirms items have been placed in locker")
+  @PutMapping(UriParamConstants.CONFIRM)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> confirmOrder(@PathVariable Long orderId) {
     OrderResponse response = orderService.confirmOrder(orderId);
@@ -123,7 +143,8 @@ public class OrderController {
   }
 
   /** Start processing order. */
-  @PutMapping("/{orderId}/process")
+  @Operation(summary = "Process Order", description = "Start processing the order")
+  @PutMapping(UriParamConstants.PROCESS)
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<OrderResponse>> processOrder(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
@@ -133,7 +154,8 @@ public class OrderController {
   }
 
   /** Mark order as ready for return. */
-  @PutMapping("/{orderId}/ready")
+  @Operation(summary = "Mark Order Ready", description = "Mark order as ready for customer pickup")
+  @PutMapping(UriParamConstants.READY)
   @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
   public ResponseEntity<ApiResponse<OrderResponse>> markOrderReady(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {

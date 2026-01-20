@@ -29,9 +29,11 @@ public class MessageConstants {
   // Email OTP Authentication
   public static final String AUTH_OTP_SENT = "AUTH_OTP_SENT";
   public static final String AUTH_OTP_VERIFIED = "AUTH_OTP_VERIFIED";
+  public static final String AUTH_OTP_SEND_FAILED = "AUTH_OTP_SEND_FAILED";
   public static final String AUTH_EMAIL_NEW_USER = "AUTH_EMAIL_NEW_USER";
   public static final String AUTH_EMAIL_LOGIN_SUCCESS = "AUTH_EMAIL_LOGIN_SUCCESS";
   public static final String AUTH_EMAIL_REGISTRATION_SUCCESS = "AUTH_EMAIL_REGISTRATION_SUCCESS";
+  public static final String AUTH_REGISTRATION_COMPLETE = "AUTH_REGISTRATION_COMPLETE";
 
   // ===== User =====
   public static final String USER_PROFILE_OK = "USER_PROFILE_OK";

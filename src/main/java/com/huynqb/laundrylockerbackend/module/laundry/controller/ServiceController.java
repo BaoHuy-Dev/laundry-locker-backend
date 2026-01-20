@@ -1,8 +1,13 @@
 package com.huynqb.laundrylockerbackend.module.laundry.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
+import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
+import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.module.laundry.dto.response.ServiceResponse;
 import com.huynqb.laundrylockerbackend.module.laundry.service.LaundryServiceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,32 +18,39 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for LaundryService operations. */
+@Tag(name = TagConstants.ROOT_TAG_SERVICES)
+@RequestMapping(UriParamConstants.ROOT_URI_SERVICES)
 @RestController
-@RequestMapping("/api/services")
 @RequiredArgsConstructor
 public class ServiceController {
 
   private final LaundryServiceService laundryServiceService;
+  private final ResponseHelper responseHelper;
 
   /** Get all services. */
+  @Operation(summary = "Get All Services", description = "Retrieve all laundry services")
   @GetMapping
   public ResponseEntity<ApiResponse<List<ServiceResponse>>> getAllServices() {
     List<ServiceResponse> services = laundryServiceService.getAllServices();
-    return ResponseEntity.ok(ApiResponse.success(services, "SERVICES_RETRIEVED"));
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
   }
 
   /** Get services by store ID. */
+  @Operation(
+      summary = "Get Services By Store",
+      description = "Retrieve services available at a specific store")
   @GetMapping(params = "storeId")
   public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByStore(
       @RequestParam Long storeId) {
     List<ServiceResponse> services = laundryServiceService.getServicesByStore(storeId);
-    return ResponseEntity.ok(ApiResponse.success(services, "SERVICES_RETRIEVED"));
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
   }
 
   /** Get service by ID. */
-  @GetMapping("/{id}")
+  @Operation(summary = "Get Service By ID", description = "Retrieve service details by ID")
+  @GetMapping(UriParamConstants.BY_ID)
   public ResponseEntity<ApiResponse<ServiceResponse>> getServiceById(@PathVariable Long id) {
     ServiceResponse service = laundryServiceService.getServiceById(id);
-    return ResponseEntity.ok(ApiResponse.success(service, "SERVICE_RETRIEVED"));
+    return ResponseEntity.ok(responseHelper.success(service, "SERVICE_RETRIEVED"));
   }
 }
