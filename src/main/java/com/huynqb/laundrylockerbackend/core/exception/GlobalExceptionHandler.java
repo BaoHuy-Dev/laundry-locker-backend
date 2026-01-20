@@ -95,4 +95,30 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(buildErrorResponse(ex.getCode(), messageService.get(ex.getCode())));
   }
+
+  @ExceptionHandler(com.huynqb.laundrylockerbackend.module.order.exception.OrderException.class)
+  public ResponseEntity<ApiResponse<Void>> handleOrderException(
+      com.huynqb.laundrylockerbackend.module.order.exception.OrderException ex) {
+    log.warn("Order exception: {}", ex.getCode());
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(buildErrorResponse(ex.getCode(), messageService.get(ex.getCode())));
+  }
+
+  @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
+  public ResponseEntity<ApiResponse<Void>> handleEntityNotFound(
+      jakarta.persistence.EntityNotFoundException ex) {
+    log.warn("Entity not found: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(buildErrorResponse("E_NOT_FOUND", ex.getMessage()));
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException ex) {
+    log.warn("Illegal state: {}", ex.getMessage());
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(buildErrorResponse("E_BAD_REQUEST", ex.getMessage()));
+  }
 }
