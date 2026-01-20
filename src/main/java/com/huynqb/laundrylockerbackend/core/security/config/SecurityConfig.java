@@ -74,6 +74,12 @@ public class SecurityConfig {
 
   private static final String[] ACTUATOR_PUBLIC_ENDPOINTS = {"/actuator/health", "/actuator/info"};
 
+  // Payment gateway callback endpoints (must be public for VNPay/MoMo to send
+  // callbacks)
+  private static final String[] PAYMENT_CALLBACK_ENDPOINTS = {
+    "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/momo/callback"
+  };
+
   // ==================== Security Filter Chains ====================
 
   /**
@@ -147,6 +153,9 @@ public class SecurityConfig {
         .requestMatchers(AUTH_ENDPOINTS)
         .permitAll()
         .requestMatchers(SWAGGER_ENDPOINTS)
+        .permitAll()
+        // Payment gateway callbacks (public for VNPay/MoMo)
+        .requestMatchers(PAYMENT_CALLBACK_ENDPOINTS)
         .permitAll()
 
         // Role-based access control

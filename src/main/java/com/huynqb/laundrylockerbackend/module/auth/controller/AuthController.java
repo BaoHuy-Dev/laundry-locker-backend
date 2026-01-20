@@ -1,9 +1,11 @@
 package com.huynqb.laundrylockerbackend.module.auth.controller;
 
+import static com.huynqb.laundrylockerbackend.core.constant.MessageConstants.*;
+
 import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
-import com.huynqb.laundrylockerbackend.core.i18n.MessageService;
+import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.CompleteRegistrationRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegistrationRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
@@ -34,7 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
   private final AuthService authService;
-  private final MessageService messageService;
+  private final ResponseHelper responseHelper;
 
   // ===== Phone Authentication Endpoints =====
 
@@ -48,19 +50,9 @@ public class AuthController {
 
     PhoneLoginResponse response = authService.phoneLogin(request);
 
-    String code = response.isNewUser() ? "AUTH_PHONE_NEW_USER" : "AUTH_PHONE_LOGIN_SUCCESS";
-    String message =
-        response.isNewUser()
-            ? "Số điện thoại chưa đăng ký. Vui lòng hoàn tất thông tin."
-            : messageService.get("AUTH_PHONE_LOGIN_SUCCESS");
+    String code = response.isNewUser() ? AUTH_PHONE_NEW_USER : AUTH_PHONE_LOGIN_SUCCESS;
 
-    return ResponseEntity.ok(
-        ApiResponse.<PhoneLoginResponse>builder()
-            .success(true)
-            .code(code)
-            .message(message)
-            .data(response)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(response, code));
   }
 
   /** Complete registration for new phone users */
@@ -73,13 +65,7 @@ public class AuthController {
 
     AuthResponse authResponse = authService.completeRegistration(request);
 
-    return ResponseEntity.ok(
-        ApiResponse.<AuthResponse>builder()
-            .success(true)
-            .code("AUTH_REGISTRATION_COMPLETE")
-            .message("Đăng ký thành công!")
-            .data(authResponse)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Email OTP Authentication Endpoints =====
@@ -93,20 +79,9 @@ public class AuthController {
     boolean sent = authService.sendEmailOtp(request);
 
     if (sent) {
-      return ResponseEntity.ok(
-          ApiResponse.<Void>builder()
-              .success(true)
-              .code("AUTH_OTP_SENT")
-              .message("Mã OTP đã được gửi đến email của bạn.")
-              .build());
+      return ResponseEntity.ok(responseHelper.success(AUTH_OTP_SENT));
     } else {
-      return ResponseEntity.internalServerError()
-          .body(
-              ApiResponse.<Void>builder()
-                  .success(false)
-                  .code("AUTH_OTP_SEND_FAILED")
-                  .message("Không thể gửi OTP. Vui lòng thử lại sau.")
-                  .build());
+      return ResponseEntity.internalServerError().body(responseHelper.error(AUTH_OTP_SEND_FAILED));
     }
   }
 
@@ -120,19 +95,9 @@ public class AuthController {
 
     EmailLoginResponse response = authService.verifyEmailOtp(request);
 
-    String code = response.isNewUser() ? "AUTH_EMAIL_NEW_USER" : "AUTH_EMAIL_LOGIN_SUCCESS";
-    String message =
-        response.isNewUser()
-            ? "Email chưa đăng ký. Vui lòng hoàn tất thông tin."
-            : "Đăng nhập thành công!";
+    String code = response.isNewUser() ? AUTH_EMAIL_NEW_USER : AUTH_EMAIL_LOGIN_SUCCESS;
 
-    return ResponseEntity.ok(
-        ApiResponse.<EmailLoginResponse>builder()
-            .success(true)
-            .code(code)
-            .message(message)
-            .data(response)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(response, code));
   }
 
   /** Complete registration for new email users */
@@ -145,13 +110,7 @@ public class AuthController {
 
     AuthResponse authResponse = authService.emailCompleteRegistration(request);
 
-    return ResponseEntity.ok(
-        ApiResponse.<AuthResponse>builder()
-            .success(true)
-            .code("AUTH_REGISTRATION_COMPLETE")
-            .message("Đăng ký thành công!")
-            .data(authResponse)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Token Management Endpoints =====
@@ -165,13 +124,7 @@ public class AuthController {
       @Valid @RequestBody RefreshTokenRequest request) {
     AuthResponse authResponse = authService.refreshToken(request);
 
-    return ResponseEntity.ok(
-        ApiResponse.<AuthResponse>builder()
-            .success(true)
-            .code("AUTH_REFRESH_SUCCESS")
-            .message(messageService.get("AUTH_REFRESH_SUCCESS"))
-            .data(authResponse)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REFRESH_SUCCESS));
   }
 
   /** Logout endpoint */
@@ -183,12 +136,7 @@ public class AuthController {
     String accessToken = extractTokenFromRequest(httpRequest);
     authService.logout(accessToken, request);
 
-    return ResponseEntity.ok(
-        ApiResponse.<Void>builder()
-            .success(true)
-            .code("AUTH_LOGOUT_SUCCESS")
-            .message(messageService.get("AUTH_LOGOUT_SUCCESS"))
-            .build());
+    return ResponseEntity.ok(responseHelper.success(AUTH_LOGOUT_SUCCESS));
   }
 
   // ===== Helper Methods =====
