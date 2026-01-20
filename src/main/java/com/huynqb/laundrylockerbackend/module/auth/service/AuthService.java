@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.auth.service;
 
+import static com.huynqb.laundrylockerbackend.core.constant.MessageConstants.*;
+
 import com.google.firebase.auth.FirebaseToken;
 import com.huynqb.laundrylockerbackend.core.firebase.FirebaseService;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
@@ -113,7 +115,7 @@ public class AuthService {
 
     // Check if user already exists
     if (userRepository.findByPhoneNumber(phoneNumber).isPresent()) {
-      throw new AuthenticationException("E_AUTH005"); // User already exists
+      throw new AuthenticationException(E_AUTH005);
     }
 
     // Create new user with profile info
@@ -173,7 +175,7 @@ public class AuthService {
 
     // Verify OTP
     if (!emailOtpService.verifyOtp(email, request.getOtp())) {
-      throw new AuthenticationException("E_AUTH006"); // Invalid or expired OTP
+      throw new AuthenticationException(E_OTP001);
     }
 
     // Check if user exists
@@ -218,12 +220,12 @@ public class AuthService {
 
     // Verify OTP again for security
     if (!emailOtpService.verifyOtp(email, request.getOtp())) {
-      throw new AuthenticationException("E_AUTH006"); // Invalid or expired OTP
+      throw new AuthenticationException(E_OTP001);
     }
 
     // Check if user already exists
     if (userRepository.findByEmail(email).isPresent()) {
-      throw new AuthenticationException("E_AUTH005"); // User already exists
+      throw new AuthenticationException(E_AUTH005);
     }
 
     // Create new user with profile info
