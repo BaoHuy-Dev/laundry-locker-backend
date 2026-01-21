@@ -45,3 +45,9 @@ src/main/resources/docs/
 *.pem
 *.p12
 *.key
+
+### Docker ###
+.env
+.env.*
+!.env.example
+

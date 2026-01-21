@@ -1,0 +1,66 @@
+package com.huynqb.laundrylockerbackend.module.notification.model;
+
+import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationStatus;
+import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationType;
+import com.huynqb.laundrylockerbackend.module.user.model.User;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import lombok.*;
+
+/** Notification entity for storing user notifications. */
+@Entity
+@Table(
+    name = "notifications",
+    indexes = {@Index(name = "idx_notifications_user_status", columnList = "user_id, status")})
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Notification {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 50)
+  private NotificationType type;
+
+  @Column(nullable = false)
+  private String title;
+
+  @Column(nullable = false, columnDefinition = "TEXT")
+  private String message;
+
+  /** Reference ID (orderId, paymentId, etc.) for navigation */
+  private Long referenceId;
+
+  /** Reference type for navigation (ORDER, PAYMENT) */
+  private String referenceType;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  @Builder.Default
+  private NotificationStatus status = NotificationStatus.UNREAD;
+
+  @Column(nullable = false, updatable = false)
+  @Builder.Default
+  private LocalDateTime createdAt = LocalDateTime.now();
+
+  private LocalDateTime readAt;
+
+  @PrePersist
+  protected void onCreate() {
+    if (createdAt == null) {
+      createdAt = LocalDateTime.now();
+    }
+    if (status == null) {
+      status = NotificationStatus.UNREAD;
+    }
+  }
+}

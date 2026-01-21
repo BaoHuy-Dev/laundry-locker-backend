@@ -80,6 +80,9 @@ public class SecurityConfig {
     "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/momo/callback"
   };
 
+  // WebSocket endpoints (must be public for initial connection)
+  private static final String[] WEBSOCKET_ENDPOINTS = {"/ws/**", "/ws"};
+
   // ==================== Security Filter Chains ====================
 
   /**
@@ -156,6 +159,9 @@ public class SecurityConfig {
         .permitAll()
         // Payment gateway callbacks (public for VNPay/MoMo)
         .requestMatchers(PAYMENT_CALLBACK_ENDPOINTS)
+        .permitAll()
+        // WebSocket endpoints (public for initial connection)
+        .requestMatchers(WEBSOCKET_ENDPOINTS)
         .permitAll()
 
         // Role-based access control
