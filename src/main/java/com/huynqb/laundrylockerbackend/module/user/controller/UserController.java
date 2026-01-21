@@ -3,13 +3,14 @@ package com.huynqb.laundrylockerbackend.module.user.controller;
 import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
-import com.huynqb.laundrylockerbackend.core.i18n.MessageService;
+import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import com.huynqb.laundrylockerbackend.module.user.service.CustomOAuth2User;
 import com.huynqb.laundrylockerbackend.module.user.service.CustomOidcUser;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** REST controller for User operations. */
 @Tag(name = TagConstants.ROOT_TAG_USERS)
 @RequestMapping(UriParamConstants.ROOT_URI_USERS)
 @RestController
@@ -27,10 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
   private final UserRepository userRepository;
-  private final MessageService messageService;
+  private final ResponseHelper responseHelper;
   private final UserMapper userMapper;
 
   /** Get user profile - supports both JWT and OAuth2 authentication */
+  @Operation(
+      summary = "Get User Profile",
+      description = "Retrieve current user's profile information")
   @GetMapping(UriParamConstants.PROFILE)
   @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
   public ResponseEntity<ApiResponse<UserResponse>> getUserProfile(
@@ -39,15 +44,10 @@ public class UserController {
     User user = extractUserFromPrincipal(principal);
     UserResponse userResponse = userMapper.toResponse(user);
 
-    return ResponseEntity.ok(
-        ApiResponse.<UserResponse>builder()
-            .success(true)
-            .code("USER_PROFILE_OK")
-            .message(messageService.get("USER_PROFILE_OK"))
-            .data(userResponse)
-            .build());
+    return ResponseEntity.ok(responseHelper.success(userResponse, "USER_PROFILE_OK"));
   }
 
+  @Operation(summary = "Admin Dashboard", description = "Access admin dashboard (Admin only)")
   @GetMapping(UriParamConstants.DASHBOAR)
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<ApiResponse<String>> adminDashboard() {
@@ -58,6 +58,7 @@ public class UserController {
             .build());
   }
 
+  @Operation(summary = "Read Resource", description = "Read resource with READ_PRIVILEGE")
   @GetMapping(UriParamConstants.READ)
   @PreAuthorize("hasAuthority('READ_PRIVILEGE')")
   public ResponseEntity<ApiResponse<String>> readResource() {

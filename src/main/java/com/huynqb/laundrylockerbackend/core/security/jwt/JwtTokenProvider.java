@@ -59,10 +59,33 @@ public class JwtTokenProvider {
     String subject = user.getEmail() != null ? user.getEmail() : user.getPhoneNumber();
     return generateToken(
         subject,
+        user.getId(),
         user.getRoles().stream()
             .map(Role::getName)
             .map(roleName -> "ROLE_" + roleName.name())
             .collect(Collectors.toList()));
+  }
+
+  /**
+   * Core method to generate JWT token
+   *
+   * @param subject User email or phone (used as subject)
+   * @param userId User ID
+   * @param roles List of user roles
+   * @return JWT token string
+   */
+  private String generateToken(String subject, Long userId, java.util.List<String> roles) {
+    Date now = new Date();
+    Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+
+    return Jwts.builder()
+        .subject(subject)
+        .claim("userId", userId)
+        .claim("roles", roles)
+        .issuedAt(now)
+        .expiration(expiryDate)
+        .signWith(getSigningKey())
+        .compact();
   }
 
   /**
@@ -96,6 +119,18 @@ public class JwtTokenProvider {
         Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
 
     return claims.getSubject();
+  }
+
+  /**
+   * Extract user ID from JWT token.
+   *
+   * @param token JWT token
+   * @return User ID
+   */
+  public Long getUserIdFromToken(String token) {
+    Claims claims =
+        Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+    return claims.get("userId", Long.class);
   }
 
   /**
