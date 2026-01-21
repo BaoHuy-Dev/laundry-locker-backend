@@ -1,0 +1,65 @@
+# ============================================
+# Docker Ignore File
+# ============================================
+# Files/folders to exclude from Docker image build
+
+# Build output
+target/
+build/
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+*.launch
+
+# Git
+.git/
+.gitignore
+
+# Docker files (not needed inside container)
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Environment files (security - do not include in image)
+.env
+.env.*
+!.env.example
+
+# Test
+test-results/
+test-output/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Documentation (not needed at runtime)
+docs/
+*.md
+!README.md
+
+# Temp files
+tmp/
+temp/
+*.tmp
+*.temp
+
