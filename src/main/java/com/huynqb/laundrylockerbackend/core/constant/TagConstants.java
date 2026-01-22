@@ -13,4 +13,5 @@ public class TagConstants {
   public static final String ROOT_TAG_SERVICES = "SERVICES";
   public static final String ROOT_TAG_ORDERS = "ORDERS";
   public static final String ROOT_TAG_PAYMENTS = "PAYMENTS";
+  public static final String ROOT_TAG_NOTIFICATIONS = "NOTIFICATIONS";
 }

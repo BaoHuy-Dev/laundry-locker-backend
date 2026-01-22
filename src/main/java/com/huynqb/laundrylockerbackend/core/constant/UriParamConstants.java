@@ -15,6 +15,7 @@ public class UriParamConstants {
   public static final String ROOT_URI_SERVICES = "/api/services";
   public static final String ROOT_URI_ORDERS = "/api/orders";
   public static final String ROOT_URI_PAYMENTS = "/api/payments";
+  public static final String ROOT_URI_NOTIFICATIONS = "/api/notifications";
 
   // ===== Common Path Variables =====
   public static final String BY_ID = "/{id}";
@@ -55,4 +56,13 @@ public class UriParamConstants {
   public static final String CONFIRM = "/{orderId}/confirm";
   public static final String PROCESS = "/{orderId}/process";
   public static final String READY = "/{orderId}/ready";
+
+  // ===== Notification Enpoints =====
+  public static final String NOTIFICATIONS_BY_ID = "/{id}";
+  public static final String NOTIFICATIONS_ALL = "/all";
+  public static final String NOTIFICATIONS_UNREAD = "/unread";
+  public static final String NOTIFICATIONS_UNREAD_COUNT = "/unread/count";
+  public static final String NOTIFICATIONS_READ = "/{id}/read";
+  public static final String NOTIFICATIONS_READ_ALL = "/read-all";
+  public static final String NOTIFICATIONS_DELETE = "/{id}";
 }

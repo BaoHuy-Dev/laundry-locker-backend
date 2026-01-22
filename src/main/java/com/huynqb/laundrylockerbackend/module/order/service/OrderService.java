@@ -7,6 +7,7 @@ import com.huynqb.laundrylockerbackend.module.locker.model.Box;
 import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
 import com.huynqb.laundrylockerbackend.module.locker.repository.BoxRepository;
 import com.huynqb.laundrylockerbackend.module.locker.repository.LockerRepository;
+import com.huynqb.laundrylockerbackend.module.notification.service.NotificationService;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CheckoutOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderItemRequest;
@@ -53,6 +54,7 @@ public class OrderService {
   private final UserRepository userRepository;
   private final OrderMapper orderMapper;
   private final PaymentMapper paymentMapper;
+  private final NotificationService notificationService;
 
   private static final SecureRandom RANDOM = new SecureRandom();
   private static final int PIN_CODE_LENGTH = 6;
@@ -142,6 +144,8 @@ public class OrderService {
 
     User staff = findUserById(staffId);
 
+    OrderStatus oldStatus = order.getStatus();
+
     order.setStatus(OrderStatus.RETURNED);
     order.setReceiveBox(receiveBox);
     order.setStaff(staff);
@@ -153,6 +157,9 @@ public class OrderService {
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} returned to box {}", orderId, boxId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.RETURNED);
 
     return orderMapper.toResponse(savedOrder);
   }
@@ -166,6 +173,8 @@ public class OrderService {
     Order order = findOrderById(orderId);
     validateOrderStatus(order.getStatus(), CANCEL_VALID_STATUSES, "E_ORDER005");
 
+    OrderStatus oldStatus = order.getStatus();
+
     releaseOrderBoxes(order);
 
     order.setStatus(OrderStatus.CANCELED);
@@ -173,6 +182,9 @@ public class OrderService {
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} canceled", orderId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.CANCELED);
 
     return orderMapper.toResponse(savedOrder);
   }
@@ -205,10 +217,14 @@ public class OrderService {
     Order order = findOrderById(orderId);
     validateOrderStatus(order.getStatus(), List.of(OrderStatus.INITIALIZED), "E_ORDER006");
 
+    OrderStatus oldStatus = order.getStatus();
     order.setStatus(OrderStatus.WAITING);
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} confirmed, now WAITING", orderId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.WAITING);
 
     return orderMapper.toResponse(savedOrder);
   }
@@ -222,12 +238,16 @@ public class OrderService {
     Order order = findOrderById(orderId);
     validateOrderStatus(order.getStatus(), List.of(OrderStatus.COLLECTED), "E_ORDER007");
 
+    OrderStatus oldStatus = order.getStatus();
     User staff = findUserById(staffId);
     order.setStatus(OrderStatus.PROCESSING);
     order.setStaff(staff);
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} is now PROCESSING", orderId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.PROCESSING);
 
     return orderMapper.toResponse(savedOrder);
   }
@@ -241,12 +261,16 @@ public class OrderService {
     Order order = findOrderById(orderId);
     validateOrderStatus(order.getStatus(), List.of(OrderStatus.PROCESSING), "E_ORDER008");
 
+    OrderStatus oldStatus = order.getStatus();
     User staff = findUserById(staffId);
     order.setStatus(OrderStatus.READY);
     order.setStaff(staff);
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} is now READY", orderId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.READY);
 
     return orderMapper.toResponse(savedOrder);
   }
