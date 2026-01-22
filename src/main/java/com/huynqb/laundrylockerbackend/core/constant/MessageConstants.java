@@ -108,4 +108,26 @@ public class MessageConstants {
   public static final String E_BOX002 = "E_BOX002";
   public static final String E_BOX003 = "E_BOX003";
   public static final String E_SERVICE001 = "E_SERVICE001";
+
+  // ===== HTTP Errors =====
+  public static final String E_HTTP_METHOD_NOT_ALLOWED = "E_HTTP_METHOD_NOT_ALLOWED";
+  public static final String E_UNSUPPORTED_MEDIA_TYPE = "E_UNSUPPORTED_MEDIA_TYPE";
+  public static final String E_MALFORMED_REQUEST = "E_MALFORMED_REQUEST";
+  public static final String E_RESOURCE_NOT_FOUND = "E_RESOURCE_NOT_FOUND";
+  public static final String E_FILE_TOO_LARGE = "E_FILE_TOO_LARGE";
+
+  // ===== Database Errors =====
+  public static final String E_ENTITY_NOT_FOUND = "E_ENTITY_NOT_FOUND";
+  public static final String E_DATA_INTEGRITY = "E_DATA_INTEGRITY";
+  public static final String E_DATABASE_ERROR = "E_DATABASE_ERROR";
+
+  // ===== State Errors =====
+  public static final String E_ILLEGAL_STATE = "E_ILLEGAL_STATE";
+  public static final String E_NOT_IMPLEMENTED = "E_NOT_IMPLEMENTED";
+
+  // ===== Rate Limit Errors =====
+  public static final String E_RATE_LIMIT = "E_RATE_LIMIT";
+
+  // ===== External Service Errors =====
+  public static final String E_EXTERNAL_SERVICE = "E_EXTERNAL_SERVICE";
 }

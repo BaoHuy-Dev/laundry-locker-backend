@@ -4,10 +4,14 @@ import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.auth.service.TokenService;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
+import com.huynqb.laundrylockerbackend.module.user.service.CustomOAuth2User;
+import com.huynqb.laundrylockerbackend.module.user.service.CustomOidcUser;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +23,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * OAuth2AuthenticationSuccessHandler - Generates JWT tokens after OAuth2 login Uses Redis via
- * TokenService for refresh token storage.
+ * OAuth2AuthenticationSuccessHandler - Generates JWT tokens after OAuth2 login.
+ * Uses Redis via TokenService for refresh token storage.
  */
 @Slf4j
 @Component
@@ -42,35 +46,65 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
       HttpServletRequest request, HttpServletResponse response, Authentication authentication)
       throws IOException, ServletException {
 
-    OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-    String email = oAuth2User.getAttribute("email");
+    try {
+      User user = extractUserFromAuthentication(authentication);
 
-    log.info("OAuth2 Login successful for user: {}", email);
+      if (user == null) {
+        log.error("Failed to extract user from authentication");
+        handleAuthenticationFailure(request, response, "Failed to extract user information");
+        return;
+      }
 
-    // Find user from database
-    User user =
-        userRepository
-            .findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found after OAuth2 login"));
+      log.info("OAuth2 Login successful for user: {} (ID: {})", user.getEmail(), user.getId());
 
-    // Generate JWT tokens
-    String accessToken = jwtTokenProvider.generateTokenFromUser(user);
-    String refreshToken = createRefreshToken(user);
+      // Generate JWT tokens
+      String accessToken = jwtTokenProvider.generateTokenFromUser(user);
+      String refreshToken = createRefreshToken(user);
 
-    // Redirect to frontend with tokens
-    String targetUrl = getTargetUrl(accessToken, refreshToken);
+      // Redirect to frontend with tokens
+      String targetUrl = buildSuccessRedirectUrl(accessToken, refreshToken);
 
-    if (response.isCommitted()) {
-      log.debug("Response has already been committed. Unable to redirect to " + targetUrl);
-      return;
+      if (response.isCommitted()) {
+        log.debug("Response has already been committed. Unable to redirect to {}", targetUrl);
+        return;
+      }
+
+      clearAuthenticationAttributes(request);
+      getRedirectStrategy().sendRedirect(request, response, targetUrl);
+
+    } catch (Exception ex) {
+      log.error("Error during OAuth2 authentication success handling", ex);
+      handleAuthenticationFailure(request, response, "An error occurred during login");
     }
-
-    clearAuthenticationAttributes(request);
-    getRedirectStrategy().sendRedirect(request, response, targetUrl);
   }
 
-  /** Build redirect URL with tokens as query parameters */
-  private String getTargetUrl(String accessToken, String refreshToken) {
+  /**
+   * Extract User entity from Authentication principal.
+   * Supports both CustomOAuth2User and CustomOidcUser.
+   */
+  private User extractUserFromAuthentication(Authentication authentication) {
+    Object principal = authentication.getPrincipal();
+
+    if (principal instanceof CustomOAuth2User) {
+      return ((CustomOAuth2User) principal).getUser();
+    } else if (principal instanceof CustomOidcUser) {
+      return ((CustomOidcUser) principal).getUser();
+    } else if (principal instanceof OAuth2User) {
+      // Fallback: lookup by email
+      OAuth2User oAuth2User = (OAuth2User) principal;
+      String email = oAuth2User.getAttribute("email");
+      if (email != null) {
+        return userRepository.findByEmail(email).orElse(null);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Build redirect URL with tokens as query parameters.
+   */
+  private String buildSuccessRedirectUrl(String accessToken, String refreshToken) {
     return UriComponentsBuilder.fromUriString(frontendRedirectUri)
         .queryParam("token", accessToken)
         .queryParam("refreshToken", refreshToken)
@@ -78,7 +112,28 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         .toUriString();
   }
 
-  /** Create refresh token and save to Redis */
+  /**
+   * Handle authentication failure by redirecting to frontend with error.
+   */
+  private void handleAuthenticationFailure(
+      HttpServletRequest request, HttpServletResponse response, String errorMessage)
+      throws IOException {
+
+    String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+
+    String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
+        .queryParam("error", "true")
+        .queryParam("message", encodedError)
+        .build()
+        .toUriString();
+
+    clearAuthenticationAttributes(request);
+    getRedirectStrategy().sendRedirect(request, response, targetUrl);
+  }
+
+  /**
+   * Create refresh token and save to Redis.
+   */
   private String createRefreshToken(User user) {
     String tokenValue = UUID.randomUUID().toString();
 
