@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HomeController {
 
   @Operation(summary = "Home", description = "Public home endpoint")
-  @GetMapping("/")
+  @GetMapping(UriParamConstants.HOME)
   public ResponseEntity<ApiResponse<String>> home() {
     return ResponseEntity.ok(
         ApiResponse.<String>builder().success(true).data("Welcome to the Home Page!").build());

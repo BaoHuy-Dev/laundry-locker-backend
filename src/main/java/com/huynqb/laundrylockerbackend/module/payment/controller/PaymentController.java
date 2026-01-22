@@ -39,7 +39,7 @@ public class PaymentController {
   @Operation(
       summary = "Create Payment",
       description = "Create online payment and get redirect URL for VNPay/MoMo")
-  @PostMapping("/create")
+  @PostMapping(UriParamConstants.PAYMENT_CREATE)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<PaymentUrlResponse>> createPayment(
       @Valid @RequestBody CreatePaymentRequest request, HttpServletRequest servletRequest) {
@@ -51,7 +51,7 @@ public class PaymentController {
 
   /** VNPay IPN callback (server-to-server). */
   @Operation(summary = "VNPay IPN", description = "VNPay Instant Payment Notification callback")
-  @GetMapping("/vnpay/ipn")
+  @GetMapping(UriParamConstants.VNPAY_IPN)
   public ResponseEntity<Map<String, String>> vnPayIpn(@RequestParam Map<String, String> params) {
     log.info("Received VNPay IPN callback");
     Map<String, String> response = paymentService.processVNPayIpn(params);
@@ -60,7 +60,7 @@ public class PaymentController {
 
   /** VNPay return URL (redirect from payment page). */
   @Operation(summary = "VNPay Return", description = "VNPay return URL after payment completion")
-  @GetMapping("/vnpay/return")
+  @GetMapping(UriParamConstants.VNPAY_RETURN)
   public ResponseEntity<ApiResponse<PaymentResponse>> vnPayReturn(
       @RequestParam Map<String, String> params) {
     log.info("Received VNPay return redirect");
@@ -70,7 +70,7 @@ public class PaymentController {
 
   /** MoMo callback. */
   @Operation(summary = "MoMo Callback", description = "MoMo payment callback")
-  @PostMapping("/momo/callback")
+  @PostMapping(UriParamConstants.MOMO_CALLBACK)
   public ResponseEntity<Map<String, Object>> momoCallback(@RequestBody Map<String, Object> params) {
     log.info("Received MoMo callback");
     paymentService.processMoMoCallback(params);
@@ -83,7 +83,7 @@ public class PaymentController {
 
   /** MoMo return URL. */
   @Operation(summary = "MoMo Return", description = "MoMo return URL after payment")
-  @GetMapping("/momo/return")
+  @GetMapping(UriParamConstants.MOMO_RETURN)
   public ResponseEntity<ApiResponse<String>> momoReturn(@RequestParam Map<String, String> params) {
     log.info("Received MoMo return redirect");
     // This endpoint is for user redirect, actual processing happens via callback
@@ -92,7 +92,7 @@ public class PaymentController {
 
   /** Get payment by ID. */
   @Operation(summary = "Get Payment", description = "Get payment details by ID")
-  @GetMapping("/{paymentId}")
+  @GetMapping(UriParamConstants.PAYMENT_BY_ID)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentById(@PathVariable Long paymentId) {
     PaymentResponse response = paymentService.getPaymentById(paymentId);
@@ -101,7 +101,7 @@ public class PaymentController {
 
   /** Get payments by order ID. */
   @Operation(summary = "Get Payments By Order", description = "Get all payments for an order")
-  @GetMapping("/order/{orderId}")
+  @GetMapping(UriParamConstants.PAYMENT_BY_ORDER)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<List<PaymentResponse>>> getPaymentsByOrder(
       @PathVariable Long orderId) {

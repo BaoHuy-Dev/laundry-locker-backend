@@ -37,7 +37,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     return processOAuth2User(userRequest, oauth2User);
   }
 
-  @Transactional
   private OAuth2User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oauth2User) {
     String registrationId = userRequest.getClientRegistration().getRegistrationId();
     log.info("Processing OAuth2 user from provider: {}", registrationId);
@@ -52,19 +51,36 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         oAuth2UserInfo.getName(),
         oAuth2UserInfo.getId());
 
-    if (!StringUtils.hasText(oAuth2UserInfo.getEmail())) {
-      log.error("Email not found from OAuth2 provider");
-      throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
+    // For providers without email (like Zalo), use providerId as identifier
+    String email = oAuth2UserInfo.getEmail();
+    String providerId = oAuth2UserInfo.getId();
+    AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
+
+    // Check if email is available
+    boolean hasEmail = StringUtils.hasText(email);
+
+    if (!hasEmail && !StringUtils.hasText(providerId)) {
+      log.error("Neither email nor provider ID found from OAuth2 provider");
+      throw new OAuth2AuthenticationException("Unable to identify user from OAuth2 provider");
     }
 
-    Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
+    Optional<User> userOptional;
+
+    if (hasEmail) {
+      // Try to find by email first
+      userOptional = userRepository.findByEmail(email);
+    } else {
+      // For providers without email (like Zalo), find by providerId
+      userOptional = userRepository.findByProviderAndProviderId(provider, providerId);
+    }
+
     User user;
 
     if (userOptional.isPresent()) {
-      log.info("User already exists with email: {}", oAuth2UserInfo.getEmail());
+      log.info("User already exists: {}", hasEmail ? email : "providerId=" + providerId);
       user = userOptional.get();
 
-      if (!user.getProvider().equals(AuthProvider.valueOf(registrationId.toUpperCase()))) {
+      if (!user.getProvider().equals(provider)) {
         log.error(
             "Provider mismatch.  Existing:  {}, Trying: {}", user.getProvider(), registrationId);
         throw new OAuth2AuthenticationException(
@@ -78,7 +94,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
       user = updateExistingUser(user, oAuth2UserInfo);
     } else {
-      log.info("Creating new user with email: {}", oAuth2UserInfo.getEmail());
+      log.info("Creating new user: {}", hasEmail ? email : "providerId=" + providerId);
       user = registerNewUser(userRequest, oAuth2UserInfo);
     }
 
@@ -86,7 +102,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     return new CustomOAuth2User(oauth2User, user);
   }
 
-  @Transactional
   private User registerNewUser(OAuth2UserRequest userRequest, OAuth2UserInfo oAuth2UserInfo) {
     log.info("==== Registering New User ====");
 
@@ -97,8 +112,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             .orElseThrow(
                 () -> {
                   log.error("USER role not found in database!");
-                  return new RuntimeException(
-                      "User Role not found.  Please run DataInitializer first.");
+                  return new OAuth2AuthenticationException(
+                      "User role not configured. Please contact administrator.");
                 });
 
     log.info("Found USER role with ID: {}", userRole.getId());
@@ -128,7 +143,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     return savedUser;
   }
 
-  @Transactional
   private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
     log.info("Updating existing user:  {}", existingUser.getEmail());
 

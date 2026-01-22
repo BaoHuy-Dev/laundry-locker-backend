@@ -18,6 +18,7 @@ public class UriParamConstants {
   public static final String ROOT_URI_NOTIFICATIONS = "/api/notifications";
 
   // ===== Common Path Variables =====
+  public static final String HOME = "/";
   public static final String BY_ID = "/{id}";
   public static final String BY_STORE = "/store/{storeId}";
 
@@ -65,4 +66,13 @@ public class UriParamConstants {
   public static final String NOTIFICATIONS_READ = "/{id}/read";
   public static final String NOTIFICATIONS_READ_ALL = "/read-all";
   public static final String NOTIFICATIONS_DELETE = "/{id}";
+
+  // ===== Payment Endpoints =====
+  public static final String PAYMENT_CREATE = "/create";
+  public static final String PAYMENT_BY_ID = "/{paymentId}";
+  public static final String PAYMENT_BY_ORDER = "/order/{orderId}";
+  public static final String VNPAY_IPN = "/vnpay/ipn";
+  public static final String VNPAY_RETURN = "/vnpay/return";
+  public static final String MOMO_CALLBACK = "/momo/callback";
+  public static final String MOMO_RETURN = "/momo/return";
 }

@@ -37,7 +37,6 @@ public class CustomOidcUserService extends OidcUserService {
     return processOidcUser(userRequest, oidcUser);
   }
 
-  @Transactional
   private OidcUser processOidcUser(OidcUserRequest userRequest, OidcUser oidcUser) {
     String registrationId = userRequest.getClientRegistration().getRegistrationId();
     log.info("Processing OIDC user from provider: {}", registrationId);
@@ -84,7 +83,6 @@ public class CustomOidcUserService extends OidcUserService {
     return new CustomOidcUser(oidcUser, user);
   }
 
-  @Transactional
   private User registerNewUser(
       String registrationId, String email, String name, String picture, String providerId) {
     log.info("==== Registering New OIDC User ====");
@@ -95,8 +93,8 @@ public class CustomOidcUserService extends OidcUserService {
             .orElseThrow(
                 () -> {
                   log.error("USER role not found in database!");
-                  return new RuntimeException(
-                      "User Role not found.  Please run DataInitializer first.");
+                  return new OAuth2AuthenticationException(
+                      "User role not configured. Please contact administrator.");
                 });
 
     log.info("Found USER role with ID: {}", userRole.getId());
@@ -126,7 +124,6 @@ public class CustomOidcUserService extends OidcUserService {
     return savedUser;
   }
 
-  @Transactional
   private User updateExistingUser(User existingUser, String name, String picture) {
     log.info("Updating existing user:  {}", existingUser.getEmail());
 
