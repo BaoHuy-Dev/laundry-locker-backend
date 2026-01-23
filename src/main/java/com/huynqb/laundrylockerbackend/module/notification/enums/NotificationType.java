@@ -4,5 +4,7 @@ package com.huynqb.laundrylockerbackend.module.notification.enums;
 public enum NotificationType {
   ORDER_STATUS,
   PAYMENT,
-  SYSTEM
+  SYSTEM,
+  PICKUP_REMINDER,
+  AUTO_CANCEL
 }

@@ -3,6 +3,7 @@ package com.huynqb.laundrylockerbackend.module.order.dto.request;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderType;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,11 +22,28 @@ public class CreateOrderRequest {
   @NotNull(message = "Locker ID is required")
   private Long lockerId;
 
-  private Long boxId; // Optional, system can auto-assign
+  /** Single box ID (backward compatibility). If boxIds is provided, this will be ignored. */
+  private Long boxId;
+
+  /**
+   * Multiple box IDs for customers who need more than one box. If null/empty, system will
+   * auto-assign based on boxId or find available.
+   */
+  private Set<Long> boxIds;
 
   private String customerNote;
 
   private String deliveryAddress;
 
-  private List<OrderItemRequest> items;
+  /**
+   * Service IDs to apply to this order. Quantity/weight will be updated by staff after collection.
+   */
+  private List<Long> serviceIds;
+
+  /**
+   * Old format - still supported for backward compatibility.
+   *
+   * @deprecated Use serviceIds instead
+   */
+  @Deprecated private List<OrderItemRequest> items;
 }

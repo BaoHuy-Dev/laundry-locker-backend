@@ -7,7 +7,6 @@ import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-
 /** MapStruct mapper for Admin Locker operations. */
 @Mapper(componentModel = "spring")
 public interface AdminLockerMapper {

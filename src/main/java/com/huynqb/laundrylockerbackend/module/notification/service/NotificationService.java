@@ -10,6 +10,7 @@ import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.payment.model.Payment;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
+import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final NotificationMapper notificationMapper;
   private final WebSocketNotificationService webSocketNotificationService;
+  private final UserRepository userRepository;
 
   // ==================== Create Notifications ====================
 
@@ -183,6 +185,43 @@ public class NotificationService {
 
     notificationRepository.delete(notification);
     log.info("Notification {} deleted by user {}", notificationId, userId);
+  }
+
+  // ==================== Public Create Method (for Scheduler) ====================
+
+  /**
+   * Create and send a notification to a user. Public method for use by scheduler and other
+   * services.
+   */
+  @Transactional
+  public NotificationResponse createNotification(
+      Long userId,
+      String typeString,
+      String title,
+      String message,
+      Long referenceId,
+      String referenceType) {
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+    NotificationType type;
+    try {
+      type = NotificationType.valueOf(typeString);
+    } catch (IllegalArgumentException e) {
+      type = NotificationType.SYSTEM;
+    }
+
+    Notification notification =
+        createAndSaveNotification(user, type, title, message, referenceId, referenceType);
+
+    NotificationResponse response = notificationMapper.toResponse(notification);
+    webSocketNotificationService.sendToUser(userId, response);
+
+    log.info("Custom notification sent to user {}: {}", userId, title);
+    return response;
   }
 
   // ==================== Private Helper Methods ====================

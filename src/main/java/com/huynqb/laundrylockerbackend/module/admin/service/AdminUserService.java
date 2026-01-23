@@ -1,10 +1,12 @@
 package com.huynqb.laundrylockerbackend.module.admin.service;
 
 import com.huynqb.laundrylockerbackend.core.exception.ResourceNotFoundException;
+import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateUserRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserRolesRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AdminUserResponse;
 import com.huynqb.laundrylockerbackend.module.admin.mapper.AdminUserMapper;
+import com.huynqb.laundrylockerbackend.module.user.enums.AuthProvider;
 import com.huynqb.laundrylockerbackend.module.user.enums.RoleName;
 import com.huynqb.laundrylockerbackend.module.user.model.Role;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
@@ -16,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,73 @@ public class AdminUserService {
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
   private final AdminUserMapper mapper;
+  private final PasswordEncoder passwordEncoder;
+
+  /**
+   * Create a new user (e.g., Staff account).
+   *
+   * @param request create user request
+   * @return created admin user response
+   */
+  @Transactional
+  public AdminUserResponse createUser(CreateUserRequest request) {
+    // Check if email already exists
+    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+      throw new RuntimeException("Email already in use: " + request.getEmail());
+    }
+
+    // Check if phone already exists
+    if (request.getPhoneNumber() != null
+        && userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+      throw new RuntimeException("Phone number already in use: " + request.getPhoneNumber());
+    }
+
+    // Build user
+    User user =
+        User.builder()
+            .email(request.getEmail())
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .phoneNumber(request.getPhoneNumber())
+            .provider(AuthProvider.LOCAL)
+            .enabled(request.getEnabled() != null ? request.getEnabled() : true)
+            .emailVerified(true) // Admin-created users are pre-verified
+            .build();
+
+    // Set password if provided
+    if (request.getPassword() != null && !request.getPassword().isBlank()) {
+      user.setPassword(passwordEncoder.encode(request.getPassword()));
+    }
+
+    // Assign roles
+    if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+      Set<Role> roles = new HashSet<>();
+      for (String roleName : request.getRoles()) {
+        try {
+          RoleName rn = RoleName.valueOf(roleName.toUpperCase());
+          Role role =
+              roleRepository
+                  .findByName(rn)
+                  .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName));
+          roles.add(role);
+        } catch (IllegalArgumentException e) {
+          throw new RuntimeException("Invalid role: " + roleName);
+        }
+      }
+      user.setRoles(roles);
+    } else {
+      // Default role is USER
+      Role userRole =
+          roleRepository
+              .findByName(RoleName.USER)
+              .orElseThrow(() -> new ResourceNotFoundException("Role USER not found"));
+      user.setRoles(Set.of(userRole));
+    }
+
+    user = userRepository.save(user);
+    log.info("Admin created new user: {} with roles: {}", user.getEmail(), request.getRoles());
+    return mapper.toResponse(user);
+  }
 
   /**
    * Get all users with pagination.

@@ -16,13 +16,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -61,9 +65,19 @@ public class Order extends BaseModel {
   @JoinColumn(name = "sender_id", nullable = false)
   private User sender;
 
+  // Single send box (for backward compatibility)
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "send_box_id")
   private Box sendBox;
+
+  // Multiple send boxes support
+  @Builder.Default
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "order_send_boxes",
+      joinColumns = @JoinColumn(name = "order_id"),
+      inverseJoinColumns = @JoinColumn(name = "box_id"))
+  private Set<Box> sendBoxes = new HashSet<>();
 
   // Receiver info
   @ManyToOne(fetch = FetchType.LAZY)
@@ -73,6 +87,15 @@ public class Order extends BaseModel {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "receive_box_id")
   private Box receiveBox;
+
+  // Multiple receive boxes support
+  @Builder.Default
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "order_receive_boxes",
+      joinColumns = @JoinColumn(name = "order_id"),
+      inverseJoinColumns = @JoinColumn(name = "box_id"))
+  private Set<Box> receiveBoxes = new HashSet<>();
 
   private LocalDateTime receiveAt;
 
@@ -90,6 +113,13 @@ public class Order extends BaseModel {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "staff_id")
   private User staff;
+
+  // Actual weight (updated by staff after collection)
+  @Column(precision = 10, scale = 2)
+  private BigDecimal actualWeight;
+
+  // Weight unit (kg, etc.)
+  private String weightUnit;
 
   // Pricing
   @Builder.Default

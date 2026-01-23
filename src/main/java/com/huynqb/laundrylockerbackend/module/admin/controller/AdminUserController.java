@@ -4,6 +4,7 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateUserRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserRolesRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserStatusRequest;
@@ -15,11 +16,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +47,18 @@ public class AdminUserController {
   public ResponseEntity<ApiResponse<Page<AdminUserResponse>>> getAllUsers(Pageable pageable) {
     Page<AdminUserResponse> users = adminUserService.getAllUsers(pageable);
     return ResponseEntity.ok(responseHelper.success(users, "USERS_RETRIEVED"));
+  }
+
+  /** Create a new user (e.g., Staff account) */
+  @Operation(
+      summary = "Create User",
+      description = "Create a new user with specified roles (Admin only)")
+  @PostMapping
+  public ResponseEntity<ApiResponse<AdminUserResponse>> createUser(
+      @Valid @RequestBody CreateUserRequest request) {
+    AdminUserResponse user = adminUserService.createUser(request);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(responseHelper.success(user, "USER_CREATED"));
   }
 
   /** Get user by ID */

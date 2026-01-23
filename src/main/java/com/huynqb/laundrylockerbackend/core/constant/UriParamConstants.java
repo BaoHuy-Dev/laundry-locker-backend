@@ -64,6 +64,7 @@ public class UriParamConstants {
   public static final String CONFIRM = "/{orderId}/confirm";
   public static final String PROCESS = "/{orderId}/process";
   public static final String READY = "/{orderId}/ready";
+  public static final String UPDATE_WEIGHT = "/{orderId}/weight";
 
   // ===== Notification Enpoints =====
   public static final String NOTIFICATIONS_BY_ID = "/{id}";
@@ -93,4 +94,45 @@ public class UriParamConstants {
   public static final String ADMIN_MAINTENANCE = "/{id}/maintenance";
   public static final String ADMIN_BOXES = "/{id}/boxes";
   public static final String ADMIN_BOX_STATUS = "/boxes/{boxId}/status";
+
+  // ===== IoT Module URIs =====
+  public static final String ROOT_URI_IOT = "/api/iot";
+  public static final String IOT_VERIFY_PIN = "/verify-pin";
+  public static final String IOT_UNLOCK = "/unlock";
+  public static final String IOT_PICKUP = "/pickup";
+  public static final String IOT_BOX_STATUS = "/box-status";
+
+  // ===== Order - Customer Endpoints =====
+  public static final String MY_ORDERS = "/my-orders";
+  public static final String COMPLETE = "/{orderId}/complete";
+
+  // ===== User Endpoints (Extended) =====
+  public static final String UPDATE_PROFILE = "/profile";
+  public static final String CHANGE_PASSWORD = "/password";
+  public static final String FCM_TOKEN = "/fcm-token";
+
+  // ===== Staff Module URIs =====
+  public static final String ROOT_URI_STAFF = "/api/staff";
+  public static final String STAFF_ORDERS = "/orders";
+  public static final String STAFF_ORDERS_WAITING = "/orders/waiting";
+  public static final String STAFF_ORDERS_PROCESSING = "/orders/processing";
+  public static final String STAFF_ORDERS_READY = "/orders/ready";
+  public static final String STAFF_ASSIGN = "/orders/{orderId}/assign";
+  public static final String STAFF_MY_ASSIGNED = "/orders/my-assigned";
+  public static final String STAFF_LOCKERS = "/lockers";
+  public static final String STAFF_UNLOCK_BOX = "/unlock-box";
+
+  // ===== Admin Order Management =====
+  public static final String ROOT_URI_ADMIN_ORDERS = "/api/admin/orders";
+  public static final String ADMIN_ORDERS_STATISTICS = "/statistics";
+  public static final String ROOT_URI_ADMIN_PAYMENTS = "/api/admin/payments";
+  public static final String ADMIN_REVENUE = "/revenue";
+  public static final String ADMIN_PAYMENT_BY_ID = "/{paymentId}";
+
+  // ===== Admin Scheduler =====
+  public static final String ROOT_URI_ADMIN_SCHEDULER = "/api/admin/scheduler";
+  public static final String SCHEDULER_AUTO_CANCEL = "/auto-cancel";
+  public static final String SCHEDULER_RELEASE_BOXES = "/release-boxes";
+  public static final String SCHEDULER_PICKUP_REMINDERS = "/pickup-reminders";
+  public static final String SCHEDULER_STATUS = "/status";
 }

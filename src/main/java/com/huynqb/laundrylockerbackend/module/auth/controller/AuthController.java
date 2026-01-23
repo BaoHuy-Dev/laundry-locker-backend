@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 /**
  * AuthController - REST API endpoints for phone and email OTP authentication. Supports: Phone
  * Login, Email OTP, Complete Registration, Refresh Token, Logout.
@@ -53,7 +52,10 @@ public class AuthController {
 
     PhoneLoginResponse response = authService.phoneLogin(request);
 
-    String code = response.isNewUser() ? MessageConstants.AUTH_PHONE_NEW_USER : MessageConstants.AUTH_PHONE_LOGIN_SUCCESS;
+    String code =
+        response.isNewUser()
+            ? MessageConstants.AUTH_PHONE_NEW_USER
+            : MessageConstants.AUTH_PHONE_LOGIN_SUCCESS;
 
     return ResponseEntity.ok(responseHelper.success(response, code));
   }
@@ -68,7 +70,8 @@ public class AuthController {
 
     AuthResponse authResponse = authService.completeRegistration(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
+    return ResponseEntity.ok(
+        responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Email OTP Authentication Endpoints =====
@@ -84,7 +87,8 @@ public class AuthController {
     if (sent) {
       return ResponseEntity.ok(responseHelper.success(MessageConstants.AUTH_OTP_SENT));
     } else {
-      return ResponseEntity.internalServerError().body(responseHelper.error(MessageConstants.AUTH_OTP_SEND_FAILED));
+      return ResponseEntity.internalServerError()
+          .body(responseHelper.error(MessageConstants.AUTH_OTP_SEND_FAILED));
     }
   }
 
@@ -98,7 +102,10 @@ public class AuthController {
 
     EmailLoginResponse response = authService.verifyEmailOtp(request);
 
-    String code = response.isNewUser() ? MessageConstants.AUTH_EMAIL_NEW_USER : MessageConstants.AUTH_EMAIL_LOGIN_SUCCESS;
+    String code =
+        response.isNewUser()
+            ? MessageConstants.AUTH_EMAIL_NEW_USER
+            : MessageConstants.AUTH_EMAIL_LOGIN_SUCCESS;
 
     return ResponseEntity.ok(responseHelper.success(response, code));
   }
@@ -113,7 +120,8 @@ public class AuthController {
 
     AuthResponse authResponse = authService.emailCompleteRegistration(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
+    return ResponseEntity.ok(
+        responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Token Management Endpoints =====
@@ -127,7 +135,8 @@ public class AuthController {
       @Valid @RequestBody RefreshTokenRequest request) {
     AuthResponse authResponse = authService.refreshToken(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REFRESH_SUCCESS));
+    return ResponseEntity.ok(
+        responseHelper.success(authResponse, MessageConstants.AUTH_REFRESH_SUCCESS));
   }
 
   /** Logout endpoint */

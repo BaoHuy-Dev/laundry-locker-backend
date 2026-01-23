@@ -9,7 +9,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-
 /**
  * MapStruct mapper for Admin Store operations. Follows Single Responsibility Principle - only
  * handles Store DTO mapping.

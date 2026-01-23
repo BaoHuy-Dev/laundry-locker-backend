@@ -11,6 +11,7 @@ import com.huynqb.laundrylockerbackend.module.notification.service.NotificationS
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CheckoutOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderItemRequest;
+import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.exception.OrderException;
@@ -123,9 +124,59 @@ public class OrderService {
     order.setStatus(OrderStatus.COLLECTED);
     order.setStaff(staff);
     releaseBox(order.getSendBox());
+    // Also release multiple send boxes if used
+    if (order.getSendBoxes() != null && !order.getSendBoxes().isEmpty()) {
+      order.getSendBoxes().forEach(this::releaseBox);
+      order.getSendBoxes().clear();
+    }
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order {} collected by staff {}", orderId, staffId);
+
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  // ===== Update Order Weight (Staff after collection) =====
+
+  @Transactional
+  public OrderResponse updateOrderWeight(
+      Long orderId, UpdateOrderWeightRequest request, Long staffId) {
+    log.info(
+        "Updating order {} weight: {} {} by staff {}",
+        orderId,
+        request.getActualWeight(),
+        request.getWeightUnit(),
+        staffId);
+
+    Order order = findOrderById(orderId);
+
+    // Validate status - can only update weight after COLLECTED
+    validateOrderStatus(
+        order.getStatus(), List.of(OrderStatus.COLLECTED, OrderStatus.PROCESSING), "E_ORDER011");
+
+    User staff = findUserById(staffId);
+
+    // Update weight info
+    order.setActualWeight(request.getActualWeight());
+    order.setWeightUnit(request.getWeightUnit());
+    order.setStaff(staff);
+    if (request.getStaffNote() != null) {
+      order.setStaffNote(request.getStaffNote());
+    }
+
+    // Update order items if provided
+    if (request.getItems() != null && !request.getItems().isEmpty()) {
+      // Clear existing and add new
+      order.getOrderDetails().clear();
+      addOrderDetails(order, request.getItems());
+    }
+
+    Order savedOrder = orderRepository.save(order);
+    log.info(
+        "Order {} weight updated to {} {}",
+        orderId,
+        request.getActualWeight(),
+        request.getWeightUnit());
 
     return orderMapper.toResponse(savedOrder);
   }
@@ -206,6 +257,55 @@ public class OrderService {
     Order order =
         orderRepository.findByPinCode(pinCode).orElseThrow(() -> new OrderException("E_ORDER001"));
     return orderMapper.toResponse(order);
+  }
+
+  // ===== Get My Orders - Customer's own orders =====
+
+  @Transactional(readOnly = true)
+  public Page<OrderResponse> getMyOrders(Long userId, OrderStatus status, Pageable pageable) {
+    log.info("Getting orders for user: {}, status: {}", userId, status);
+    if (status != null) {
+      return orderRepository
+          .findBySenderIdAndStatusAndDeleteFlagFalse(userId, status, pageable)
+          .map(orderMapper::toResponse);
+    }
+    return orderRepository
+        .findBySenderIdAndDeleteFlagFalse(userId, pageable)
+        .map(orderMapper::toResponse);
+  }
+
+  // ===== Complete Order - Customer confirms pickup =====
+
+  @Transactional
+  public OrderResponse completeOrderByCustomer(Long orderId, Long userId) {
+    log.info("Completing order: {} by customer: {}", orderId, userId);
+
+    Order order = findOrderById(orderId);
+
+    // Validate order belongs to user
+    if (!order.getSender().getId().equals(userId)) {
+      throw new OrderException("E_ORDER009"); // Order does not belong to user
+    }
+
+    // Validate status - must be RETURNED (after staff returned items)
+    validateOrderStatus(order.getStatus(), List.of(OrderStatus.RETURNED), "E_ORDER010");
+
+    OrderStatus oldStatus = order.getStatus();
+
+    order.setStatus(OrderStatus.COMPLETED);
+    order.setCompletedAt(LocalDateTime.now());
+    order.setPinCode(null); // Clear PIN after pickup
+
+    // Release receive box
+    releaseBox(order.getReceiveBox());
+
+    Order savedOrder = orderRepository.save(order);
+    log.info("Order {} completed by customer", orderId);
+
+    // Send notification
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.COMPLETED);
+
+    return orderMapper.toResponse(savedOrder);
   }
 
   // ===== Confirm Order - Customer confirms items placed =====

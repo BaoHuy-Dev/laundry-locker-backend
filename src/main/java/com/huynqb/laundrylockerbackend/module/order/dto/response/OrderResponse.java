@@ -5,6 +5,7 @@ import com.huynqb.laundrylockerbackend.module.order.enums.OrderType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,9 +39,17 @@ public class OrderResponse {
   private Integer sendBoxNumber;
   private Integer receiveBoxNumber;
 
+  // Multiple boxes support
+  private Set<Integer> sendBoxNumbers;
+  private Set<Integer> receiveBoxNumbers;
+
   // Staff info
   private Long staffId;
   private String staffName;
+
+  // Weight info (updated by staff after collection)
+  private BigDecimal actualWeight;
+  private String weightUnit;
 
   // Pricing
   private BigDecimal extraFee;

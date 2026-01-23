@@ -2,6 +2,7 @@ package com.huynqb.laundrylockerbackend.module.order.repository;
 
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
   Page<Order> findByDeleteFlagFalse(Pageable pageable);
 
+  // Customer: Get my orders with pagination
+  Page<Order> findBySenderIdAndDeleteFlagFalse(Long senderId, Pageable pageable);
+
+  // Customer: Get my orders by status
+  Page<Order> findBySenderIdAndStatusAndDeleteFlagFalse(
+      Long senderId, OrderStatus status, Pageable pageable);
+
+  // Staff: Get orders by status list
+  Page<Order> findByStatusInAndDeleteFlagFalse(List<OrderStatus> statuses, Pageable pageable);
+
+  // Staff: Get orders assigned to staff
+  Page<Order> findByStaffIdAndDeleteFlagFalse(Long staffId, Pageable pageable);
+
   @Query("SELECT o FROM Order o WHERE o.locker.store.id = :storeId AND o.deleteFlag = false")
   Page<Order> findByStoreId(@Param("storeId") Long storeId, Pageable pageable);
 
@@ -43,4 +57,32 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
           + " o.deleteFlag = false")
   List<Order> findByLockerIdAndStatusIn(
       @Param("lockerId") Long lockerId, @Param("statuses") List<OrderStatus> statuses);
+
+  // ===== Scheduler Queries =====
+
+  /**
+   * Find orders in INITIALIZED status that were created before the specified time. Used for
+   * auto-cancellation of unconfirmed orders.
+   */
+  @Query(
+      "SELECT o FROM Order o WHERE o.status = :status AND o.createdAt < :beforeTime AND o.deleteFlag = false")
+  List<Order> findByStatusAndCreatedAtBefore(
+      @Param("status") OrderStatus status, @Param("beforeTime") LocalDateTime beforeTime);
+
+  /**
+   * Find orders in COMPLETED status that still have boxes assigned. Used for auto-releasing boxes
+   * after pickup.
+   */
+  @Query(
+      "SELECT o FROM Order o WHERE o.status = 'COMPLETED' AND o.completedAt < :beforeTime "
+          + "AND (o.sendBox IS NOT NULL OR o.receiveBox IS NOT NULL) AND o.deleteFlag = false")
+  List<Order> findCompletedOrdersWithBoxesBefore(@Param("beforeTime") LocalDateTime beforeTime);
+
+  /**
+   * Find orders in RETURNED status where completedAt is null (waiting for pickup). Used to track
+   * orders ready for customer pickup.
+   */
+  @Query(
+      "SELECT o FROM Order o WHERE o.status = 'RETURNED' AND o.createdAt < :beforeTime AND o.deleteFlag = false")
+  List<Order> findReturnedOrdersBefore(@Param("beforeTime") LocalDateTime beforeTime);
 }

@@ -4,21 +4,33 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
+import com.huynqb.laundrylockerbackend.module.user.dto.request.ChangePasswordRequest;
+import com.huynqb.laundrylockerbackend.module.user.dto.request.FcmTokenRequest;
+import com.huynqb.laundrylockerbackend.module.user.dto.request.UpdateProfileRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import com.huynqb.laundrylockerbackend.module.user.service.CustomOAuth2User;
 import com.huynqb.laundrylockerbackend.module.user.service.CustomOidcUser;
+import com.huynqb.laundrylockerbackend.module.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for User operations. */
@@ -31,6 +43,8 @@ public class UserController {
   private final UserRepository userRepository;
   private final ResponseHelper responseHelper;
   private final UserMapper userMapper;
+  private final UserService userService;
+  private final JwtTokenProvider jwtTokenProvider;
 
   /** Get user profile - supports both JWT and OAuth2 authentication */
   @Operation(
@@ -69,6 +83,55 @@ public class UserController {
             .build());
   }
 
+  /** Update user profile. */
+  @Operation(summary = "Update Profile", description = "Update current user's profile information")
+  @PutMapping(UriParamConstants.UPDATE_PROFILE)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+      @Valid @RequestBody UpdateProfileRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    UserResponse response = userService.updateProfile(userId, request);
+    return ResponseEntity.ok(responseHelper.success(response, "PROFILE_UPDATED"));
+  }
+
+  /** Change password. */
+  @Operation(summary = "Change Password", description = "Change current user's password")
+  @PutMapping(UriParamConstants.CHANGE_PASSWORD)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<Void>> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    userService.changePassword(userId, request);
+    return ResponseEntity.ok(responseHelper.success("PASSWORD_CHANGED"));
+  }
+
+  /** Register FCM token for push notifications. */
+  @Operation(
+      summary = "Register FCM Token",
+      description = "Register FCM token for push notifications")
+  @PostMapping(UriParamConstants.FCM_TOKEN)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<Void>> registerFcmToken(
+      @Valid @RequestBody FcmTokenRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    userService.registerFcmToken(userId, request);
+    return ResponseEntity.ok(responseHelper.success("FCM_TOKEN_REGISTERED"));
+  }
+
+  /** Remove FCM token. */
+  @Operation(summary = "Remove FCM Token", description = "Remove FCM token (logout from device)")
+  @DeleteMapping(UriParamConstants.FCM_TOKEN)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<Void>> removeFcmToken(
+      @RequestParam String fcmToken, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    userService.removeFcmToken(userId, fcmToken);
+    return ResponseEntity.ok(responseHelper.success("FCM_TOKEN_REMOVED"));
+  }
+
   /**
    * Extract user from different principal types Supports: UserDetails (JWT), CustomOAuth2User,
    * CustomOidcUser
@@ -90,5 +153,10 @@ public class UserController {
       return ((CustomOAuth2User) principal).getUser();
     }
     throw new IllegalStateException("Unknown principal type: " + principal.getClass().getName());
+  }
+
+  private Long extractUserId(String authHeader) {
+    String token = authHeader.replace("Bearer ", "");
+    return jwtTokenProvider.getUserIdFromToken(token);
   }
 }

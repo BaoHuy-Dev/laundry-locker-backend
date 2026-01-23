@@ -7,7 +7,9 @@ import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CheckoutOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderRequest;
+import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
+import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderService;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -82,6 +84,34 @@ public class OrderController {
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_RETRIEVED"));
   }
 
+  /** Get my orders - Customer's own orders. */
+  @Operation(
+      summary = "Get My Orders",
+      description = "Retrieve current user's orders with optional status filter")
+  @GetMapping(UriParamConstants.MY_ORDERS)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<Page<OrderResponse>>> getMyOrders(
+      @RequestParam(required = false) OrderStatus status,
+      Pageable pageable,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    Page<OrderResponse> orders = orderService.getMyOrders(userId, status, pageable);
+    return ResponseEntity.ok(responseHelper.success(orders, "ORDERS_RETRIEVED"));
+  }
+
+  /** Complete order - Customer confirms pickup. */
+  @Operation(
+      summary = "Complete Order",
+      description = "Customer confirms pickup, completing the order")
+  @PutMapping(UriParamConstants.COMPLETE)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderResponse>> completeOrder(
+      @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderResponse response = orderService.completeOrderByCustomer(orderId, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_COMPLETED"));
+  }
+
   /** Checkout an order (payment). */
   @Operation(
       summary = "Checkout Order",
@@ -106,6 +136,21 @@ public class OrderController {
     Long staffId = extractUserId(authHeader);
     OrderResponse response = orderService.collectOrder(orderId, staffId);
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_COLLECTED"));
+  }
+
+  /** Update order weight after collection (staff). */
+  @Operation(
+      summary = "Update Order Weight",
+      description = "Staff updates order weight and items after weighing the laundry")
+  @PutMapping(UriParamConstants.UPDATE_WEIGHT)
+  @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+  public ResponseEntity<ApiResponse<OrderResponse>> updateOrderWeight(
+      @PathVariable Long orderId,
+      @Valid @RequestBody UpdateOrderWeightRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long staffId = extractUserId(authHeader);
+    OrderResponse response = orderService.updateOrderWeight(orderId, request, staffId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_WEIGHT_UPDATED"));
   }
 
   /** Return processed order to locker. */

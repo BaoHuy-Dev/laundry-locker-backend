@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
 /**
  * REST controller for payment operations. Handles online payment creation and callback processing.
  */
@@ -49,7 +48,7 @@ public class PaymentController {
   @PostMapping(UriParamConstants.PAYMENT_CREATE)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<PaymentUrlResponse>> createPayment(
-          @Valid @RequestBody CreatePaymentRequest request, HttpServletRequest servletRequest) {
+      @Valid @RequestBody CreatePaymentRequest request, HttpServletRequest servletRequest) {
     String ipAddress = getClientIpAddress(servletRequest);
     PaymentUrlResponse response = paymentService.createPayment(request, ipAddress);
     return ResponseEntity.status(HttpStatus.CREATED)
