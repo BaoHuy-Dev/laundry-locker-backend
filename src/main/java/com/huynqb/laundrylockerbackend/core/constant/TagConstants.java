@@ -14,4 +14,11 @@ public class TagConstants {
   public static final String ROOT_TAG_ORDERS = "ORDERS";
   public static final String ROOT_TAG_PAYMENTS = "PAYMENTS";
   public static final String ROOT_TAG_NOTIFICATIONS = "NOTIFICATIONS";
+
+  // ===== Admin Module Tags =====
+  public static final String ROOT_TAG_ADMIN_DASHBOARD = "ADMIN - DASHBOARD";
+  public static final String ROOT_TAG_ADMIN_USERS = "ADMIN - USERS";
+  public static final String ROOT_TAG_ADMIN_STORES = "ADMIN - STORES";
+  public static final String ROOT_TAG_ADMIN_SERVICES = "ADMIN - SERVICES";
+  public static final String ROOT_TAG_ADMIN_LOCKERS = "ADMIN - LOCKERS";
 }

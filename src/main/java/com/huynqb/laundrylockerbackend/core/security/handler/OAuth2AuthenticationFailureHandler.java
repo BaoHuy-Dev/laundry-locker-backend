@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * OAuth2AuthenticationFailureHandler - Handles OAuth2 authentication failures.
- * Redirects to frontend with error information.
+ * OAuth2AuthenticationFailureHandler - Handles OAuth2 authentication failures. Redirects to
+ * frontend with error information.
  */
 @Slf4j
 @Component
@@ -31,18 +31,18 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
     log.error("OAuth2 authentication failed: {}", exception.getMessage());
 
-    String errorMessage = exception.getMessage() != null
-        ? exception.getMessage()
-        : "Authentication failed";
+    String errorMessage =
+        exception.getMessage() != null ? exception.getMessage() : "Authentication failed";
 
     // Encode error message for URL
     String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
 
-    String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
-        .queryParam("error", "true")
-        .queryParam("message", encodedError)
-        .build()
-        .toUriString();
+    String targetUrl =
+        UriComponentsBuilder.fromUriString(frontendRedirectUri)
+            .queryParam("error", "true")
+            .queryParam("message", encodedError)
+            .build()
+            .toUriString();
 
     log.debug("Redirecting to: {}", targetUrl);
 

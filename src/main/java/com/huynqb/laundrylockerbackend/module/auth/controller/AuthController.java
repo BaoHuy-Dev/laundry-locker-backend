@@ -1,7 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.auth.controller;
 
-import static com.huynqb.laundrylockerbackend.core.constant.MessageConstants.*;
-
+import com.huynqb.laundrylockerbackend.core.constant.MessageConstants;
 import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
@@ -23,7 +22,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 
 /**
  * AuthController - REST API endpoints for phone and email OTP authentication. Supports: Phone
@@ -50,7 +53,7 @@ public class AuthController {
 
     PhoneLoginResponse response = authService.phoneLogin(request);
 
-    String code = response.isNewUser() ? AUTH_PHONE_NEW_USER : AUTH_PHONE_LOGIN_SUCCESS;
+    String code = response.isNewUser() ? MessageConstants.AUTH_PHONE_NEW_USER : MessageConstants.AUTH_PHONE_LOGIN_SUCCESS;
 
     return ResponseEntity.ok(responseHelper.success(response, code));
   }
@@ -65,7 +68,7 @@ public class AuthController {
 
     AuthResponse authResponse = authService.completeRegistration(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REGISTRATION_COMPLETE));
+    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Email OTP Authentication Endpoints =====
@@ -79,9 +82,9 @@ public class AuthController {
     boolean sent = authService.sendEmailOtp(request);
 
     if (sent) {
-      return ResponseEntity.ok(responseHelper.success(AUTH_OTP_SENT));
+      return ResponseEntity.ok(responseHelper.success(MessageConstants.AUTH_OTP_SENT));
     } else {
-      return ResponseEntity.internalServerError().body(responseHelper.error(AUTH_OTP_SEND_FAILED));
+      return ResponseEntity.internalServerError().body(responseHelper.error(MessageConstants.AUTH_OTP_SEND_FAILED));
     }
   }
 
@@ -95,7 +98,7 @@ public class AuthController {
 
     EmailLoginResponse response = authService.verifyEmailOtp(request);
 
-    String code = response.isNewUser() ? AUTH_EMAIL_NEW_USER : AUTH_EMAIL_LOGIN_SUCCESS;
+    String code = response.isNewUser() ? MessageConstants.AUTH_EMAIL_NEW_USER : MessageConstants.AUTH_EMAIL_LOGIN_SUCCESS;
 
     return ResponseEntity.ok(responseHelper.success(response, code));
   }
@@ -110,7 +113,7 @@ public class AuthController {
 
     AuthResponse authResponse = authService.emailCompleteRegistration(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REGISTRATION_COMPLETE));
+    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Token Management Endpoints =====
@@ -124,7 +127,7 @@ public class AuthController {
       @Valid @RequestBody RefreshTokenRequest request) {
     AuthResponse authResponse = authService.refreshToken(request);
 
-    return ResponseEntity.ok(responseHelper.success(authResponse, AUTH_REFRESH_SUCCESS));
+    return ResponseEntity.ok(responseHelper.success(authResponse, MessageConstants.AUTH_REFRESH_SUCCESS));
   }
 
   /** Logout endpoint */
@@ -136,7 +139,7 @@ public class AuthController {
     String accessToken = extractTokenFromRequest(httpRequest);
     authService.logout(accessToken, request);
 
-    return ResponseEntity.ok(responseHelper.success(AUTH_LOGOUT_SUCCESS));
+    return ResponseEntity.ok(responseHelper.success(MessageConstants.AUTH_LOGOUT_SUCCESS));
   }
 
   // ===== Helper Methods =====

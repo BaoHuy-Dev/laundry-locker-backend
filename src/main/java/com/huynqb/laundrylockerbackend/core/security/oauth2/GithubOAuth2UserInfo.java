@@ -2,9 +2,7 @@ package com.huynqb.laundrylockerbackend.core.security.oauth2;
 
 import java.util.Map;
 
-/**
- * OAuth2UserInfo implementation for GitHub.
- */
+/** OAuth2UserInfo implementation for GitHub. */
 public class GithubOAuth2UserInfo extends OAuth2UserInfo {
 
   public GithubOAuth2UserInfo(Map<String, Object> attributes) {

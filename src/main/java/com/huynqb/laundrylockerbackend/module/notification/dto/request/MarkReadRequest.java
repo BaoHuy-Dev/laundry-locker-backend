@@ -1,8 +1,14 @@
 package com.huynqb.laundrylockerbackend.module.notification.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
-import lombok.*;
+
 
 /** Request DTO for marking notifications as read. */
 @Getter

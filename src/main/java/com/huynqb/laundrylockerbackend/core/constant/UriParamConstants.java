@@ -17,6 +17,13 @@ public class UriParamConstants {
   public static final String ROOT_URI_PAYMENTS = "/api/payments";
   public static final String ROOT_URI_NOTIFICATIONS = "/api/notifications";
 
+  // ===== Admin Module URIs =====
+  public static final String ROOT_URI_ADMIN_DASHBOARD = "/api/admin/dashboard";
+  public static final String ROOT_URI_ADMIN_USERS = "/api/admin/users";
+  public static final String ROOT_URI_ADMIN_STORES = "/api/admin/stores";
+  public static final String ROOT_URI_ADMIN_SERVICES = "/api/admin/services";
+  public static final String ROOT_URI_ADMIN_LOCKERS = "/api/admin/lockers";
+
   // ===== Common Path Variables =====
   public static final String HOME = "/";
   public static final String BY_ID = "/{id}";
@@ -75,4 +82,15 @@ public class UriParamConstants {
   public static final String VNPAY_RETURN = "/vnpay/return";
   public static final String MOMO_CALLBACK = "/momo/callback";
   public static final String MOMO_RETURN = "/momo/return";
+
+  // ===== Admin Dashboard Endpoints =====
+  public static final String ADMIN_OVERVIEW = "/overview";
+
+  // ===== Admin Common Endpoints =====
+  public static final String ADMIN_STATUS = "/{id}/status";
+  public static final String ADMIN_ROLES = "/{id}/roles";
+  public static final String ADMIN_PRICE = "/{id}/price";
+  public static final String ADMIN_MAINTENANCE = "/{id}/maintenance";
+  public static final String ADMIN_BOXES = "/{id}/boxes";
+  public static final String ADMIN_BOX_STATUS = "/boxes/{boxId}/status";
 }

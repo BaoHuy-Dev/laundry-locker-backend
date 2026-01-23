@@ -15,4 +15,6 @@ public interface LaundryServiceRepository extends JpaRepository<LaundryService, 
   List<LaundryService> findByStoreIdAndStatus(Long storeId, ServiceStatus status);
 
   List<LaundryService> findByDeleteFlagFalse();
+
+  List<LaundryService> findByStatus(ServiceStatus status);
 }
