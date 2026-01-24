@@ -1,16 +1,21 @@
 package com.huynqb.laundrylockerbackend.module.store.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
+import com.huynqb.laundrylockerbackend.module.partner.model.Partner;
 import com.huynqb.laundrylockerbackend.module.store.enums.StoreStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -50,4 +55,14 @@ public class Store extends BaseModel {
 
   @Column(length = 2000)
   private String description;
+
+  /** Partner who owns/manages this store. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "partner_id")
+  private Partner partner;
+
+  /** Whether the store is currently active. */
+  @Builder.Default
+  @Column(nullable = false)
+  private Boolean isActive = true;
 }

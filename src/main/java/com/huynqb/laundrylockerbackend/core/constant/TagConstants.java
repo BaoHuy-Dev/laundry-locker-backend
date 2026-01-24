@@ -32,4 +32,12 @@ public class TagConstants {
 
   // ===== Admin Scheduler Tags =====
   public static final String ROOT_TAG_ADMIN_SCHEDULER = "ADMIN - SCHEDULER";
+
+  // ===== Loyalty Module Tags =====
+  public static final String ROOT_TAG_LOYALTY = "LOYALTY";
+  public static final String ROOT_TAG_ADMIN_LOYALTY = "ADMIN - LOYALTY";
+
+  // ===== Partner Module Tags =====
+  public static final String ROOT_TAG_PARTNER = "PARTNER";
+  public static final String ROOT_TAG_ADMIN_PARTNERS = "ADMIN - PARTNERS";
 }

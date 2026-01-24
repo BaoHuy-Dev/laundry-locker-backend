@@ -13,6 +13,9 @@ import com.huynqb.laundrylockerbackend.module.iot.dto.response.PickupResponse;
 import com.huynqb.laundrylockerbackend.module.iot.dto.response.UnlockBoxResponse;
 import com.huynqb.laundrylockerbackend.module.iot.dto.response.VerifyPinResponse;
 import com.huynqb.laundrylockerbackend.module.iot.service.IoTService;
+import com.huynqb.laundrylockerbackend.module.partner.dto.request.StaffCodeUnlockRequest;
+import com.huynqb.laundrylockerbackend.module.partner.dto.response.StaffCodeUnlockResponse;
+import com.huynqb.laundrylockerbackend.module.partner.service.StaffAccessCodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class IoTController {
 
   private final IoTService ioTService;
+  private final StaffAccessCodeService staffAccessCodeService;
   private final JwtTokenProvider jwtTokenProvider;
   private final ResponseHelper responseHelper;
 
@@ -87,6 +91,19 @@ public class IoTController {
       @Valid @RequestBody BoxStatusUpdateRequest request) {
     ioTService.updateBoxStatus(request);
     return ResponseEntity.ok(responseHelper.success("BOX_STATUS_UPDATED"));
+  }
+
+  /** Unlock box using staff access code (for physical staff without account). */
+  @Operation(
+      summary = "Unlock Box with Staff Code",
+      description =
+          "Unlock a box using staff access code. Used by physical staff who don't have system accounts.")
+  @PostMapping(UriParamConstants.IOT_UNLOCK_WITH_CODE)
+  public ResponseEntity<ApiResponse<StaffCodeUnlockResponse>> unlockWithCode(
+      @Valid @RequestBody StaffCodeUnlockRequest request) {
+    StaffCodeUnlockResponse response = staffAccessCodeService.unlockWithCode(request);
+    String code = response.getSuccess() ? "BOX_UNLOCKED" : "UNLOCK_FAILED";
+    return ResponseEntity.ok(responseHelper.success(response, code));
   }
 
   private Long extractUserId(String authHeader) {

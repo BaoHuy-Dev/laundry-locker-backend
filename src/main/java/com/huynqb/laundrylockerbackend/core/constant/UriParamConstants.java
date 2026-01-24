@@ -135,4 +135,52 @@ public class UriParamConstants {
   public static final String SCHEDULER_RELEASE_BOXES = "/release-boxes";
   public static final String SCHEDULER_PICKUP_REMINDERS = "/pickup-reminders";
   public static final String SCHEDULER_STATUS = "/status";
+
+  // ===== Loyalty Module URIs =====
+  public static final String ROOT_URI_LOYALTY = "/api/loyalty";
+  public static final String LOYALTY_SUMMARY = "/summary";
+  public static final String LOYALTY_POINTS = "/points";
+  public static final String LOYALTY_POINTS_HISTORY = "/points/history";
+  public static final String LOYALTY_STAMPS = "/stamps";
+  public static final String LOYALTY_STAMPS_BY_ID = "/stamps/{stampCardId}";
+  public static final String LOYALTY_REDEEM_POINTS = "/redeem-points";
+  public static final String LOYALTY_REDEEM_STAMP = "/redeem-stamp";
+
+  // ===== Admin Loyalty =====
+  public static final String ROOT_URI_ADMIN_LOYALTY = "/api/admin/loyalty";
+  public static final String ADMIN_LOYALTY_BY_USER = "/users/{userId}";
+  public static final String ADMIN_LOYALTY_ADJUST_POINTS = "/users/{userId}/points";
+  public static final String ADMIN_LOYALTY_STATISTICS = "/statistics";
+
+  // ===== Partner Module URIs =====
+  public static final String ROOT_URI_PARTNER = "/api/partner";
+  public static final String PARTNER_DASHBOARD = "/dashboard";
+  public static final String PARTNER_STORES = "/stores";
+  public static final String PARTNER_STORES_BY_ID = "/stores/{storeId}";
+  public static final String PARTNER_STAFF = "/staff";
+  public static final String PARTNER_STAFF_BY_ID = "/staff/{staffId}";
+  public static final String PARTNER_ORDERS = "/orders";
+  public static final String PARTNER_ORDERS_PENDING = "/orders/pending";
+  public static final String PARTNER_ORDERS_BY_ID = "/orders/{orderId}";
+  public static final String PARTNER_ORDERS_ACCEPT = "/orders/{orderId}/accept";
+  public static final String PARTNER_ORDERS_PROCESS = "/orders/{orderId}/process";
+  public static final String PARTNER_ORDERS_READY = "/orders/{orderId}/ready";
+  public static final String PARTNER_REVENUE = "/revenue";
+
+  // ===== Staff Access Code URIs =====
+  public static final String PARTNER_ACCESS_CODES = "/access-codes";
+  public static final String PARTNER_ACCESS_CODES_GENERATE = "/access-codes/generate";
+  public static final String PARTNER_ACCESS_CODES_BY_ORDER = "/access-codes/order/{orderId}";
+  public static final String PARTNER_ACCESS_CODES_BY_ID = "/access-codes/{codeId}";
+  public static final String PARTNER_ACCESS_CODES_CANCEL = "/access-codes/{codeId}/cancel";
+
+  // ===== IoT Staff Code Unlock =====
+  public static final String IOT_UNLOCK_WITH_CODE = "/unlock-with-code";
+
+  // ===== Admin Partner Management =====
+  public static final String ROOT_URI_ADMIN_PARTNERS = "/api/admin/partners";
+  public static final String ADMIN_PARTNERS_BY_ID = "/{partnerId}";
+  public static final String ADMIN_PARTNERS_APPROVE = "/{partnerId}/approve";
+  public static final String ADMIN_PARTNERS_REJECT = "/{partnerId}/reject";
+  public static final String ADMIN_PARTNERS_STORES = "/{partnerId}/stores";
 }

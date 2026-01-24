@@ -2,17 +2,24 @@ package com.huynqb.laundrylockerbackend.module.user.mapper;
 
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
-import org.mapstruct.Mapper;
+import org.springframework.stereotype.Component;
 
-/**
- * MapStruct mapper for User entity conversions. Uses Spring component model for dependency
- * injection.
- */
-@Mapper(componentModel = "spring")
-public interface UserMapper {
+/** Mapper for User entity. */
+@Component
+public class UserMapper {
 
-  /**
-   * Convert User entity to UserResponse DTO. Used for API responses that need user profile data.
-   */
-  UserResponse toResponse(User user);
+  public UserResponse toResponse(User user) {
+    if (user == null) {
+      return null;
+    }
+
+    return UserResponse.builder()
+        .id(user.getId())
+        .email(user.getEmail())
+        .name(user.getName())
+        .imageUrl(user.getImageUrl())
+        .provider(user.getProvider())
+        .emailVerified(user.getEmailVerified())
+        .build();
+  }
 }

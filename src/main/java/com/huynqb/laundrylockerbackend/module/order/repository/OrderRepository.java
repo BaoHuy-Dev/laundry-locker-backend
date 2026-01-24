@@ -85,4 +85,35 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
   @Query(
       "SELECT o FROM Order o WHERE o.status = 'RETURNED' AND o.createdAt < :beforeTime AND o.deleteFlag = false")
   List<Order> findReturnedOrdersBefore(@Param("beforeTime") LocalDateTime beforeTime);
+
+  // ===== Partner Statistics Queries =====
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.locker.store.id IN :storeIds AND o.deleteFlag = false")
+  long countByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.locker.store.id IN :storeIds AND o.status = :status AND o.deleteFlag = false")
+  long countByStoreIdsAndStatus(
+      @Param("storeIds") List<Long> storeIds, @Param("status") OrderStatus status);
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.locker.store.id IN :storeIds AND o.status IN ('INITIALIZED', 'WAITING', 'COLLECTED', 'PROCESSING', 'READY', 'RETURNED') AND o.deleteFlag = false")
+  long countPendingByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+  @Query(
+      "SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.locker.store.id IN :storeIds AND o.status = 'COMPLETED' AND o.deleteFlag = false")
+  java.math.BigDecimal sumRevenueByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+  // ===== Partner Order Management Queries =====
+
+  @Query(
+      "SELECT o FROM Order o WHERE o.locker.store.id IN :storeIds AND o.status = :status AND o.deleteFlag = false")
+  Page<Order> findByStoreIdsAndStatus(
+      @Param("storeIds") List<Long> storeIds,
+      @Param("status") OrderStatus status,
+      Pageable pageable);
+
+  @Query("SELECT o FROM Order o WHERE o.locker.store.id IN :storeIds AND o.deleteFlag = false")
+  Page<Order> findByStoreIds(@Param("storeIds") List<Long> storeIds, Pageable pageable);
 }

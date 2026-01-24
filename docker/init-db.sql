@@ -17,5 +17,6 @@ DO $$
 BEGIN
     RAISE NOTICE 'Database initialization completed successfully!';
     RAISE NOTICE 'Schema laundry_locker_schema has been created.';
+    RAISE NOTICE 'Sample data will be loaded by Flyway migration V7__sample_data.sql';
 END $$;
 
