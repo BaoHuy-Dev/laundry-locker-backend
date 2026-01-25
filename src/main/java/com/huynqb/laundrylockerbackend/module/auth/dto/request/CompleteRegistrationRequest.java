@@ -11,7 +11,7 @@ import lombok.Setter;
 
 /**
  * DTO for completing phone registration with user profile info. Used after phone OTP verification
- * for new users.
+x` * for new users. Supports both idToken (Firebase) and tempToken (from phoneLogin) authentication.
  */
 @Getter
 @Setter
@@ -20,8 +20,11 @@ import lombok.Setter;
 @Builder
 public class CompleteRegistrationRequest {
 
-  @NotBlank(message = "Firebase ID token is required")
+  /** Firebase ID token (optional if using tempToken) */
   private String idToken;
+
+  /** Temporary registration token from phoneLogin response (preferred method) */
+  private String tempToken;
 
   @NotBlank(message = "First name is required")
   private String firstName;

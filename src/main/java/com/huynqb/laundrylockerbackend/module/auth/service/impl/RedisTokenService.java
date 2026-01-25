@@ -122,4 +122,30 @@ public class RedisTokenService implements TokenService {
     Boolean exists = redisTemplate.hasKey(key);
     return Boolean.TRUE.equals(exists);
   }
+
+  // ===== Temporary Registration Token Methods =====
+
+  private static final String TEMP_REGISTRATION_PREFIX = "temp:registration:";
+
+  @Override
+  public void saveTempRegistrationToken(String tempToken, String phoneNumber, long expirationMs) {
+    String key = TEMP_REGISTRATION_PREFIX + tempToken;
+    redisTemplate.opsForValue().set(key, phoneNumber, expirationMs, TimeUnit.MILLISECONDS);
+    log.debug(
+        "Redis - Saved temp registration token for phone: {}, TTL: {}ms", phoneNumber, expirationMs);
+  }
+
+  @Override
+  public String getPhoneByTempToken(String tempToken) {
+    String key = TEMP_REGISTRATION_PREFIX + tempToken;
+    return redisTemplate.opsForValue().get(key);
+  }
+
+  @Override
+  public void deleteTempToken(String tempToken) {
+    String key = TEMP_REGISTRATION_PREFIX + tempToken;
+    redisTemplate.delete(key);
+    log.debug("Redis - Deleted temp registration token: {}...",
+        tempToken.substring(0, Math.min(20, tempToken.length())));
+  }
 }

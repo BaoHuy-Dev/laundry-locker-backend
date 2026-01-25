@@ -27,4 +27,10 @@ public class PhoneLoginResponse {
 
   /** True if this is a new user who needs to complete registration */
   private boolean isNewUser;
+
+  /** Phone number for new user registration flow */
+  private String phoneNumber;
+
+  /** Temporary token for completing registration (valid for 10 minutes) */
+  private String tempToken;
 }

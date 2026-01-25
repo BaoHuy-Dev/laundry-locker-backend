@@ -93,25 +93,51 @@ public class AuthService {
           .isNewUser(false)
           .build();
     } else {
-      // New user - return flag to complete registration
+      // New user - generate temp token and save to Redis for registration
+      String tempToken = UUID.randomUUID().toString();
+      long tempTokenTtl = 600000L; // 10 minutes
+      tokenService.saveTempRegistrationToken(tempToken, phoneNumber, tempTokenTtl);
+
       log.info("New phone user detected, needs registration: {}", phoneNumber);
 
-      return PhoneLoginResponse.builder().isNewUser(true).build();
+      return PhoneLoginResponse.builder()
+          .isNewUser(true)
+          .phoneNumber(phoneNumber)
+          .tempToken(tempToken)
+          .build();
     }
   }
 
   /**
    * Complete registration for new phone users. Called after phone OTP verification.
+   * Supports both tempToken (preferred) and Firebase idToken authentication.
    *
-   * @param request Registration details with Firebase ID token
+   * @param request Registration details with tempToken or Firebase ID token
    * @return Authentication response with JWT tokens
    */
   @Transactional
   public AuthResponse completeRegistration(CompleteRegistrationRequest request) {
+    String phoneNumber;
+    String providerId;
 
-    // Verify Firebase ID token again
-    FirebaseToken firebaseToken = firebaseService.verifyIdToken(request.getIdToken());
-    String phoneNumber = firebaseService.extractPhoneNumber(firebaseToken);
+    // Try tempToken first (preferred method)
+    if (request.getTempToken() != null && !request.getTempToken().isBlank()) {
+      phoneNumber = tokenService.getPhoneByTempToken(request.getTempToken());
+      if (phoneNumber == null) {
+        throw new AuthenticationException(E_AUTH008); // Invalid or expired temp token
+      }
+      // Delete temp token after use
+      tokenService.deleteTempToken(request.getTempToken());
+      // Generate providerId from phone number for tempToken flow
+      providerId = "phone_" + phoneNumber.replaceAll("[^0-9]", "");
+    } else if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
+      // Fallback to Firebase ID token
+      FirebaseToken firebaseToken = firebaseService.verifyIdToken(request.getIdToken());
+      phoneNumber = firebaseService.extractPhoneNumber(firebaseToken);
+      providerId = firebaseToken.getUid();
+    } else {
+      throw new AuthenticationException(E_AUTH009); // Either tempToken or idToken required
+    }
 
     // Check if user already exists
     if (userRepository.findByPhoneNumber(phoneNumber).isPresent()) {
@@ -127,7 +153,7 @@ public class AuthService {
             .name(request.getFirstName() + " " + request.getLastName())
             .birthday(request.getBirthday())
             .provider(AuthProvider.PHONE)
-            .providerId(firebaseToken.getUid())
+            .providerId(providerId)
             .phoneVerified(true)
             .emailVerified(false)
             .roles(getDefaultRoles())

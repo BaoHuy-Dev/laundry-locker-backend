@@ -78,6 +78,8 @@ public class MessageConstants {
   public static final String E_AUTH005 = "E_AUTH005";
   public static final String E_AUTH006 = "E_AUTH006";
   public static final String E_AUTH007 = "E_AUTH007";
+  public static final String E_AUTH008 = "E_AUTH008"; // Invalid or expired temp registration token
+  public static final String E_AUTH009 = "E_AUTH009"; // Either tempToken or idToken is required
 
   // ===== Phone Errors =====
   public static final String E_PHONE001 = "E_PHONE001";
