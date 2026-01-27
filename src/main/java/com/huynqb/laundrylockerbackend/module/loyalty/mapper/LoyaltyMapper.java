@@ -9,99 +9,48 @@ import com.huynqb.laundrylockerbackend.module.loyalty.model.PointTransaction;
 import com.huynqb.laundrylockerbackend.module.loyalty.model.StampCard;
 import com.huynqb.laundrylockerbackend.module.loyalty.model.StampTransaction;
 import java.math.BigDecimal;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Component
-public class LoyaltyMapper {
+@Mapper(componentModel = "spring", imports = { BigDecimal.class })
+public interface LoyaltyMapper {
 
-  public LoyaltyAccountResponse toAccountResponse(LoyaltyAccount account) {
-    if (account == null) return null;
+  @Mapping(target = "userId", source = "user.id")
+  @Mapping(target = "userName", source = "account", qualifiedByName = "mapUserName")
+  @Mapping(target = "pointsValueVnd", expression = "java(BigDecimal.valueOf(account.getPointsBalance()))")
+  LoyaltyAccountResponse toAccountResponse(LoyaltyAccount account);
 
-    String userName = null;
-    if (account.getUser() != null) {
-      userName =
-          account.getUser().getFirstName() != null
-              ? account.getUser().getFirstName() + " " + account.getUser().getLastName()
-              : account.getUser().getName();
+  @Mapping(target = "userId", source = "user.id")
+  @Mapping(target = "orderId", source = "order.id")
+  PointTransactionResponse toPointTransactionResponse(PointTransaction transaction);
+
+  @Mapping(target = "userId", source = "user.id")
+  @Mapping(target = "serviceId", source = "service.id")
+  @Mapping(target = "serviceName", source = "service.name")
+  @Mapping(target = "progressPercentage", source = "card", qualifiedByName = "calculateProgress")
+  StampCardResponse toStampCardResponse(StampCard card);
+
+  @Mapping(target = "userId", source = "user.id")
+  @Mapping(target = "stampCardId", source = "stampCard.id")
+  @Mapping(target = "orderId", source = "order.id")
+  StampTransactionResponse toStampTransactionResponse(StampTransaction transaction);
+
+  @Named("mapUserName")
+  default String mapUserName(LoyaltyAccount account) {
+    if (account.getUser() == null)
+      return null;
+    if (account.getUser().getFirstName() != null) {
+      return account.getUser().getFirstName() + " " + account.getUser().getLastName();
     }
-
-    return LoyaltyAccountResponse.builder()
-        .id(account.getId())
-        .userId(account.getUser() != null ? account.getUser().getId() : null)
-        .userName(userName)
-        .pointsBalance(account.getPointsBalance())
-        .pointsValueVnd(BigDecimal.valueOf(account.getPointsBalance())) // 1 point = 1 VND
-        .totalPointsEarned(account.getTotalPointsEarned())
-        .totalPointsRedeemed(account.getTotalPointsRedeemed())
-        .totalAmountSpent(account.getTotalAmountSpent())
-        .createdAt(account.getCreatedAt())
-        .updatedAt(account.getUpdatedAt())
-        .build();
+    return account.getUser().getName();
   }
 
-  public PointTransactionResponse toPointTransactionResponse(PointTransaction transaction) {
-    if (transaction == null) return null;
-
-    return PointTransactionResponse.builder()
-        .id(transaction.getId())
-        .userId(transaction.getUser() != null ? transaction.getUser().getId() : null)
-        .orderId(transaction.getOrder() != null ? transaction.getOrder().getId() : null)
-        .type(transaction.getType())
-        .points(transaction.getPoints())
-        .relatedAmount(transaction.getRelatedAmount())
-        .balanceAfter(transaction.getBalanceAfter())
-        .description(transaction.getDescription())
-        .referenceId(transaction.getReferenceId())
-        .createdAt(transaction.getCreatedAt())
-        .build();
-  }
-
-  public StampCardResponse toStampCardResponse(StampCard card) {
-    if (card == null) return null;
-
-    int progressPercentage = 0;
+  @Named("calculateProgress")
+  default int calculateProgress(StampCard card) {
     if (card.getStampsRequired() > 0) {
-      progressPercentage = (int) ((card.getCurrentStamps() * 100.0) / card.getStampsRequired());
+      return (int) ((card.getCurrentStamps() * 100.0) / card.getStampsRequired());
     }
-
-    String serviceName = null;
-    if (card.getService() != null) {
-      serviceName = card.getService().getName();
-    }
-
-    return StampCardResponse.builder()
-        .id(card.getId())
-        .userId(card.getUser() != null ? card.getUser().getId() : null)
-        .stampType(card.getStampType())
-        .serviceId(card.getService() != null ? card.getService().getId() : null)
-        .serviceName(serviceName)
-        .boxSize(card.getBoxSize())
-        .stampsRequired(card.getStampsRequired())
-        .currentStamps(card.getCurrentStamps())
-        .freeRewardsAvailable(card.getFreeRewardsAvailable())
-        .totalStampsEarned(card.getTotalStampsEarned())
-        .totalRewardsRedeemed(card.getTotalRewardsRedeemed())
-        .progressPercentage(progressPercentage)
-        .createdAt(card.getCreatedAt())
-        .updatedAt(card.getUpdatedAt())
-        .build();
-  }
-
-  public StampTransactionResponse toStampTransactionResponse(StampTransaction transaction) {
-    if (transaction == null) return null;
-
-    return StampTransactionResponse.builder()
-        .id(transaction.getId())
-        .userId(transaction.getUser() != null ? transaction.getUser().getId() : null)
-        .stampCardId(transaction.getStampCard() != null ? transaction.getStampCard().getId() : null)
-        .orderId(transaction.getOrder() != null ? transaction.getOrder().getId() : null)
-        .type(transaction.getType())
-        .stamps(transaction.getStamps())
-        .stampsAfter(transaction.getStampsAfter())
-        .rewardsAfter(transaction.getRewardsAfter())
-        .discountApplied(transaction.getDiscountApplied())
-        .description(transaction.getDescription())
-        .createdAt(transaction.getCreatedAt())
-        .build();
+    return 0;
   }
 }

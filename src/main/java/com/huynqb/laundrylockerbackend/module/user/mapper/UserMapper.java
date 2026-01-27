@@ -2,24 +2,12 @@ package com.huynqb.laundrylockerbackend.module.user.mapper;
 
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+
 
 /** Mapper for User entity. */
-@Component
-public class UserMapper {
+@Mapper(componentModel = "spring")
+public interface UserMapper {
 
-  public UserResponse toResponse(User user) {
-    if (user == null) {
-      return null;
-    }
-
-    return UserResponse.builder()
-        .id(user.getId())
-        .email(user.getEmail())
-        .name(user.getName())
-        .imageUrl(user.getImageUrl())
-        .provider(user.getProvider())
-        .emailVerified(user.getEmailVerified())
-        .build();
-  }
+  UserResponse toResponse(User user);
 }
