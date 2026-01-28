@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.store.service;
 
 import com.huynqb.laundrylockerbackend.module.store.dto.response.StoreResponse;
+import com.huynqb.laundrylockerbackend.module.store.mapper.StoreMapper;
 import com.huynqb.laundrylockerbackend.module.store.model.Store;
 import com.huynqb.laundrylockerbackend.module.store.repository.StoreRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,11 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class StoreService {
 
   private final StoreRepository storeRepository;
+  private final StoreMapper storeMapper;
 
   @Transactional(readOnly = true)
   public List<StoreResponse> getAllStores() {
     return storeRepository.findByDeleteFlagFalse().stream()
-        .map(this::mapToResponse)
+        .map(storeMapper::toResponse)
         .collect(Collectors.toList());
   }
 
@@ -32,22 +34,6 @@ public class StoreService {
         storeRepository
             .findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Store not found"));
-    return mapToResponse(store);
-  }
-
-  private StoreResponse mapToResponse(Store store) {
-    return StoreResponse.builder()
-        .id(store.getId())
-        .name(store.getName())
-        .contactPhone(store.getContactPhone())
-        .status(store.getStatus())
-        .address(store.getAddress())
-        .longitude(store.getLongitude())
-        .latitude(store.getLatitude())
-        .image(store.getImage())
-        .description(store.getDescription())
-        .createdAt(store.getCreatedAt())
-        .updatedAt(store.getUpdatedAt())
-        .build();
+    return storeMapper.toResponse(store);
   }
 }

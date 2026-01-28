@@ -12,6 +12,7 @@ import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
 import com.huynqb.laundrylockerbackend.module.staff.dto.request.StaffUnlockBoxRequest;
 import com.huynqb.laundrylockerbackend.module.staff.dto.response.StaffOrderSummaryResponse;
 import com.huynqb.laundrylockerbackend.module.staff.dto.response.StaffUnlockBoxResponse;
+import com.huynqb.laundrylockerbackend.module.staff.mapper.StaffMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.util.List;
@@ -37,6 +38,7 @@ public class StaffService {
   private final LockerService lockerService;
   private final BoxRepository boxRepository;
   private final OrderMapper orderMapper;
+  private final StaffMapper staffMapper;
 
   @Value("${app.staff.master-pin:999999}")
   private String masterPin;
@@ -134,13 +136,8 @@ public class StaffService {
             .map(orderMapper::toResponse)
             .getContent();
 
-    return StaffOrderSummaryResponse.builder()
-        .waitingCount(waitingCount)
-        .processingCount(processingCount)
-        .collectedCount(collectedCount)
-        .readyCount(readyCount)
-        .recentOrders(recentOrders)
-        .build();
+    return staffMapper.toOrderSummaryResponse(
+        waitingCount, processingCount, collectedCount, readyCount, recentOrders);
   }
 
   /** Get all lockers with box availability for staff. */
@@ -164,22 +161,14 @@ public class StaffService {
 
     // Validate master PIN
     if (!masterPin.equals(request.getMasterPin())) {
-      return StaffUnlockBoxResponse.builder()
-          .success(false)
-          .boxId(request.getBoxId())
-          .message("Invalid master PIN")
-          .build();
+      return staffMapper.toErrorUnlockResponse(request.getBoxId(), "Invalid master PIN");
     }
 
     // Get box
     Box box = boxRepository.findById(request.getBoxId()).orElse(null);
 
     if (box == null) {
-      return StaffUnlockBoxResponse.builder()
-          .success(false)
-          .boxId(request.getBoxId())
-          .message("Box not found")
-          .build();
+      return staffMapper.toErrorUnlockResponse(request.getBoxId(), "Box not found");
     }
 
     // Generate unlock token
@@ -187,16 +176,6 @@ public class StaffService {
 
     log.info("Staff {} successfully unlocked box {}", staffId, box.getId());
 
-    return StaffUnlockBoxResponse.builder()
-        .success(true)
-        .boxId(box.getId())
-        .boxNumber(box.getBoxNumber())
-        .lockerCode(box.getLocker().getCode())
-        .lockerName(box.getLocker().getName())
-        .orderId(request.getOrderId())
-        .unlockToken(unlockToken)
-        .unlockTimestamp(System.currentTimeMillis())
-        .message("Box unlocked successfully")
-        .build();
+    return staffMapper.toSuccessUnlockResponse(box, request.getOrderId(), unlockToken);
   }
 }

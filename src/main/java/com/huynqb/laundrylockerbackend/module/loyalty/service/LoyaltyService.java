@@ -111,15 +111,8 @@ public class LoyaltyService {
     BigDecimal totalRedeemableValue =
         BigDecimal.valueOf(account.getPointsBalance()).multiply(VND_PER_POINT_REDEEM);
 
-    return LoyaltySummaryResponse.builder()
-        .pointsAccount(loyaltyMapper.toAccountResponse(account))
-        .stampCards(
-            stampCards.stream()
-                .map(loyaltyMapper::toStampCardResponse)
-                .collect(Collectors.toList()))
-        .totalRedeemableValue(totalRedeemableValue)
-        .totalFreeRewards(totalFreeRewards)
-        .build();
+    return loyaltyMapper.toSummaryResponse(
+        account, stampCards, totalRedeemableValue, totalFreeRewards);
   }
 
   // ===== Points Operations =====

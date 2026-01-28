@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.loyalty.mapper;
 
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltyAccountResponse;
+import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltySummaryResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.PointTransactionResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampCardResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampTransactionResponse;
@@ -9,6 +10,8 @@ import com.huynqb.laundrylockerbackend.module.loyalty.model.PointTransaction;
 import com.huynqb.laundrylockerbackend.module.loyalty.model.StampCard;
 import com.huynqb.laundrylockerbackend.module.loyalty.model.StampTransaction;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -39,6 +42,20 @@ public interface LoyaltyMapper {
   @Mapping(target = "stampCardId", source = "stampCard.id")
   @Mapping(target = "orderId", source = "order.id")
   StampTransactionResponse toStampTransactionResponse(StampTransaction transaction);
+
+  /** Build LoyaltySummaryResponse combining account, stamp cards, and calculated values. */
+  default LoyaltySummaryResponse toSummaryResponse(
+      LoyaltyAccount account,
+      List<StampCard> stampCards,
+      BigDecimal totalRedeemableValue,
+      int totalFreeRewards) {
+    return LoyaltySummaryResponse.builder()
+        .pointsAccount(toAccountResponse(account))
+        .stampCards(stampCards.stream().map(this::toStampCardResponse).collect(Collectors.toList()))
+        .totalRedeemableValue(totalRedeemableValue)
+        .totalFreeRewards(totalFreeRewards)
+        .build();
+  }
 
   @Named("mapUserName")
   default String mapUserName(LoyaltyAccount account) {

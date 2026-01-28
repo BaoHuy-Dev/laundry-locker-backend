@@ -7,6 +7,7 @@ import com.huynqb.laundrylockerbackend.module.iot.dto.request.VerifyPinRequest;
 import com.huynqb.laundrylockerbackend.module.iot.dto.response.PickupResponse;
 import com.huynqb.laundrylockerbackend.module.iot.dto.response.UnlockBoxResponse;
 import com.huynqb.laundrylockerbackend.module.iot.dto.response.VerifyPinResponse;
+import com.huynqb.laundrylockerbackend.module.iot.mapper.IoTMapper;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
 import com.huynqb.laundrylockerbackend.module.locker.model.Box;
 import com.huynqb.laundrylockerbackend.module.locker.repository.BoxRepository;
@@ -34,6 +35,7 @@ public class IoTService {
   private final OrderRepository orderRepository;
   private final BoxRepository boxRepository;
   private final NotificationService notificationService;
+  private final IoTMapper ioTMapper;
 
   /** Verify PIN code for a specific box. Returns order information if PIN is valid. */
   @Transactional(readOnly = true)
@@ -43,17 +45,13 @@ public class IoTService {
     Box box = boxRepository.findById(request.getBoxId()).orElse(null);
 
     if (box == null) {
-      return VerifyPinResponse.builder().valid(false).message("Box not found").build();
+      return ioTMapper.toVerifyError(null, "Box not found");
     }
 
     Optional<Order> orderOpt = orderRepository.findByPinCode(request.getPinCode());
 
     if (orderOpt.isEmpty()) {
-      return VerifyPinResponse.builder()
-          .valid(false)
-          .boxId(request.getBoxId())
-          .message("Invalid PIN code")
-          .build();
+      return ioTMapper.toVerifyError(request.getBoxId(), "Invalid PIN code");
     }
 
     Order order = orderOpt.get();
@@ -62,22 +60,10 @@ public class IoTService {
     boolean isValidBox = isValidBoxForOrder(order, box);
 
     if (!isValidBox) {
-      return VerifyPinResponse.builder()
-          .valid(false)
-          .boxId(request.getBoxId())
-          .message("PIN code does not match this box")
-          .build();
+      return ioTMapper.toVerifyError(request.getBoxId(), "PIN code does not match this box");
     }
 
-    return VerifyPinResponse.builder()
-        .valid(true)
-        .orderId(order.getId())
-        .boxId(box.getId())
-        .boxNumber(box.getBoxNumber())
-        .lockerCode(box.getLocker().getCode())
-        .orderStatus(order.getStatus().name())
-        .message("PIN verified successfully")
-        .build();
+    return ioTMapper.toVerifySuccess(order, box);
   }
 
   /** Unlock a box using PIN code. Generates an unlock token for IoT device verification. */
@@ -88,28 +74,20 @@ public class IoTService {
     Box box = boxRepository.findById(request.getBoxId()).orElse(null);
 
     if (box == null) {
-      return UnlockBoxResponse.builder().success(false).message("Box not found").build();
+      return ioTMapper.toUnlockError(null, "Box not found");
     }
 
     Optional<Order> orderOpt = orderRepository.findByPinCode(request.getPinCode());
 
     if (orderOpt.isEmpty()) {
-      return UnlockBoxResponse.builder()
-          .success(false)
-          .boxId(request.getBoxId())
-          .message("Invalid PIN code")
-          .build();
+      return ioTMapper.toUnlockError(request.getBoxId(), "Invalid PIN code");
     }
 
     Order order = orderOpt.get();
 
     // Validate PIN matches the box
     if (!isValidBoxForOrder(order, box)) {
-      return UnlockBoxResponse.builder()
-          .success(false)
-          .boxId(request.getBoxId())
-          .message("PIN code does not match this box")
-          .build();
+      return ioTMapper.toUnlockError(request.getBoxId(), "PIN code does not match this box");
     }
 
     // Generate unlock token for IoT device
@@ -117,16 +95,7 @@ public class IoTService {
 
     log.info("Box {} unlocked for order {}", box.getId(), order.getId());
 
-    return UnlockBoxResponse.builder()
-        .success(true)
-        .boxId(box.getId())
-        .boxNumber(box.getBoxNumber())
-        .lockerCode(box.getLocker().getCode())
-        .orderId(order.getId())
-        .unlockToken(unlockToken)
-        .unlockTimestamp(System.currentTimeMillis())
-        .message("Box unlocked successfully")
-        .build();
+    return ioTMapper.toUnlockSuccess(order, box, unlockToken);
   }
 
   /** Complete customer pickup - mark order as COMPLETED and release box. */
@@ -137,37 +106,31 @@ public class IoTService {
     Order order = orderRepository.findById(request.getOrderId()).orElse(null);
 
     if (order == null) {
-      return PickupResponse.builder().success(false).message("Order not found").build();
+      return ioTMapper.toPickupError(null, null, "Order not found");
     }
 
     // Validate order belongs to user
     if (!order.getSender().getId().equals(userId)) {
-      return PickupResponse.builder()
-          .success(false)
-          .orderId(request.getOrderId())
-          .message("Order does not belong to this user")
-          .build();
+      return ioTMapper.toPickupError(
+          request.getOrderId(), null, "Order does not belong to this user");
     }
 
-    // Validate order status - must be RETURNED (after payment) or COMPLETED (already completed)
+    // Validate order status - must be RETURNED (after payment) or COMPLETED
+    // (already completed)
     if (order.getStatus() != OrderStatus.RETURNED && order.getStatus() != OrderStatus.COMPLETED) {
-      return PickupResponse.builder()
-          .success(false)
-          .orderId(request.getOrderId())
-          .orderStatus(order.getStatus().name())
-          .message("Order is not ready for pickup. Current status: " + order.getStatus())
-          .build();
+      return ioTMapper.toPickupError(
+          request.getOrderId(),
+          order.getStatus().name(),
+          "Order is not ready for pickup. Current status: " + order.getStatus());
     }
 
     // If already completed, just return success
     if (order.getStatus() == OrderStatus.COMPLETED) {
-      return PickupResponse.builder()
-          .success(true)
-          .orderId(order.getId())
-          .orderStatus(order.getStatus().name())
-          .completedAt(order.getCompletedAt())
-          .message("Order already completed")
-          .build();
+      return ioTMapper.toPickupSuccess(
+          order.getId(),
+          order.getStatus().name(),
+          order.getCompletedAt(),
+          "Order already completed");
     }
 
     // Complete the order
@@ -187,13 +150,8 @@ public class IoTService {
 
     log.info("Order {} completed successfully", order.getId());
 
-    return PickupResponse.builder()
-        .success(true)
-        .orderId(order.getId())
-        .orderStatus(OrderStatus.COMPLETED.name())
-        .completedAt(now)
-        .message("Pickup confirmed. Order completed!")
-        .build();
+    return ioTMapper.toPickupSuccess(
+        order.getId(), OrderStatus.COMPLETED.name(), now, "Pickup confirmed. Order completed!");
   }
 
   /** Update box status from IoT device/sensor. */

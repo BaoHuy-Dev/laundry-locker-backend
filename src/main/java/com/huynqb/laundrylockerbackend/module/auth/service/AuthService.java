@@ -46,6 +46,7 @@ public class AuthService {
   private final JwtTokenProvider jwtTokenProvider;
   private final FirebaseService firebaseService;
   private final EmailOtpService emailOtpService;
+  private final com.huynqb.laundrylockerbackend.module.auth.mapper.AuthMapper authMapper;
 
   @Value("${app.security.jwt.expiration-ms}")
   private long jwtExpirationMs;
@@ -85,13 +86,7 @@ public class AuthService {
 
       log.info("Phone login successful for existing user: {}", phoneNumber);
 
-      return PhoneLoginResponse.builder()
-          .accessToken(accessToken)
-          .refreshToken(refreshToken)
-          .tokenType("Bearer")
-          .expiresIn(jwtExpirationMs / 1000)
-          .isNewUser(false)
-          .build();
+      return authMapper.toPhoneLoginResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
     } else {
       // New user - generate temp token and save to Redis for registration
       String tempToken = UUID.randomUUID().toString();
@@ -100,11 +95,7 @@ public class AuthService {
 
       log.info("New phone user detected, needs registration: {}", phoneNumber);
 
-      return PhoneLoginResponse.builder()
-          .isNewUser(true)
-          .phoneNumber(phoneNumber)
-          .tempToken(tempToken)
-          .build();
+      return authMapper.toNewUserPhoneResponse(phoneNumber, tempToken);
     }
   }
 
@@ -166,12 +157,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return AuthResponse.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
   }
 
   // ===== Email OTP Authentication =====
@@ -218,14 +204,7 @@ public class AuthService {
 
       log.info("Email login successful for existing user: {}", email);
 
-      return EmailLoginResponse.builder()
-          .accessToken(accessToken)
-          .refreshToken(refreshToken)
-          .tokenType("Bearer")
-          .expiresIn(jwtExpirationMs / 1000)
-          .isNewUser(false)
-          .otpVerified(true)
-          .build();
+      return authMapper.toEmailLoginResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
     } else {
       // New user - return flag to complete registration
       // Generate temp token and save to Redis for registration
@@ -235,11 +214,7 @@ public class AuthService {
 
       log.info("New email user detected, needs registration: {}", email);
 
-      return EmailLoginResponse.builder()
-          .isNewUser(true)
-          .otpVerified(true)
-          .tempToken(tempToken)
-          .build();
+      return authMapper.toNewUserEmailResponse(tempToken);
     }
   }
 
@@ -287,12 +262,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return AuthResponse.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
   }
 
   // ===== Token Management =====
@@ -322,12 +292,7 @@ public class AuthService {
 
     log.info("Access token refreshed for user ID: {}", user.getId());
 
-    return AuthResponse.builder()
-        .accessToken(newAccessToken)
-        .refreshToken(refreshTokenValue)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(newAccessToken, refreshTokenValue, jwtExpirationMs / 1000);
   }
 
   /**

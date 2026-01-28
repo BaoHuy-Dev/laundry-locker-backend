@@ -2,6 +2,7 @@ package com.huynqb.laundrylockerbackend.module.laundry.service;
 
 import com.huynqb.laundrylockerbackend.module.laundry.dto.response.ServiceResponse;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceStatus;
+import com.huynqb.laundrylockerbackend.module.laundry.mapper.LaundryServiceMapper;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
 import com.huynqb.laundrylockerbackend.module.laundry.repository.LaundryServiceRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,18 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class LaundryServiceService {
 
   private final LaundryServiceRepository laundryServiceRepository;
+  private final LaundryServiceMapper laundryServiceMapper;
 
   @Transactional(readOnly = true)
   public List<ServiceResponse> getAllServices() {
     return laundryServiceRepository.findByDeleteFlagFalse().stream()
-        .map(this::mapToResponse)
+        .map(laundryServiceMapper::toResponse)
         .collect(Collectors.toList());
   }
 
   @Transactional(readOnly = true)
   public List<ServiceResponse> getServicesByStore(Long storeId) {
     return laundryServiceRepository.findByStoreIdAndStatus(storeId, ServiceStatus.ACTIVE).stream()
-        .map(this::mapToResponse)
+        .map(laundryServiceMapper::toResponse)
         .collect(Collectors.toList());
   }
 
@@ -40,22 +42,6 @@ public class LaundryServiceService {
         laundryServiceRepository
             .findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Service not found"));
-    return mapToResponse(service);
-  }
-
-  private ServiceResponse mapToResponse(LaundryService service) {
-    return ServiceResponse.builder()
-        .id(service.getId())
-        .name(service.getName())
-        .image(service.getImage())
-        .price(service.getPrice())
-        .unit(service.getUnit())
-        .description(service.getDescription())
-        .status(service.getStatus())
-        .storeId(service.getStore().getId())
-        .storeName(service.getStore().getName())
-        .createdAt(service.getCreatedAt())
-        .updatedAt(service.getUpdatedAt())
-        .build();
+    return laundryServiceMapper.toResponse(service);
   }
 }

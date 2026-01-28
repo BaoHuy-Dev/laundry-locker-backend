@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.core.security.config;
 
+import com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter;
+import com.huynqb.laundrylockerbackend.core.security.handler.CustomAuthenticationEntryPoint;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationFailureHandler;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationSuccessHandler;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtAuthenticationFilter;
@@ -50,10 +52,8 @@ public class SecurityConfig {
   private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
   private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
-  private final com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter
-      emailVerificationFilter;
-  private final com.huynqb.laundrylockerbackend.core.security.handler.CustomAuthenticationEntryPoint
-      customAuthenticationEntryPoint;
+  private final EmailVerificationFilter emailVerificationFilter;
+  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
   // ==================== Configuration Properties ====================
   @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
