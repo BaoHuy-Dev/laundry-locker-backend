@@ -13,12 +13,16 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring", imports = { BigDecimal.class })
+@Mapper(
+    componentModel = "spring",
+    imports = {BigDecimal.class})
 public interface LoyaltyMapper {
 
   @Mapping(target = "userId", source = "user.id")
   @Mapping(target = "userName", source = "account", qualifiedByName = "mapUserName")
-  @Mapping(target = "pointsValueVnd", expression = "java(BigDecimal.valueOf(account.getPointsBalance()))")
+  @Mapping(
+      target = "pointsValueVnd",
+      expression = "java(BigDecimal.valueOf(account.getPointsBalance()))")
   LoyaltyAccountResponse toAccountResponse(LoyaltyAccount account);
 
   @Mapping(target = "userId", source = "user.id")
@@ -38,8 +42,7 @@ public interface LoyaltyMapper {
 
   @Named("mapUserName")
   default String mapUserName(LoyaltyAccount account) {
-    if (account.getUser() == null)
-      return null;
+    if (account.getUser() == null) return null;
     if (account.getUser().getFirstName() != null) {
       return account.getUser().getFirstName() + " " + account.getUser().getLastName();
     }

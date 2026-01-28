@@ -67,18 +67,18 @@ public interface TokenService {
    * Save a temporary registration token for new users
    *
    * @param tempToken The temporary token
-   * @param phoneNumber The phone number to register
+   * @param identifier The identifier (phone or email) to register
    * @param expirationMs Time until the token expires (in milliseconds)
    */
-  void saveTempRegistrationToken(String tempToken, String phoneNumber, long expirationMs);
+  void saveTempRegistrationToken(String tempToken, String identifier, long expirationMs);
 
   /**
-   * Get phone number by temporary registration token
+   * Get identifier (phone or email) by temporary registration token
    *
    * @param tempToken The temporary token
-   * @return The phone number, or null if not found or expired
+   * @return The identifier, or null if not found or expired
    */
-  String getPhoneByTempToken(String tempToken);
+  String getIdentifierByTempToken(String tempToken);
 
   /**
    * Delete a temporary registration token after use

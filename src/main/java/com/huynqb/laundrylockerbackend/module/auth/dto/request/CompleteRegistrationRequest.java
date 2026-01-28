@@ -11,7 +11,8 @@ import lombok.Setter;
 
 /**
  * DTO for completing phone registration with user profile info. Used after phone OTP verification
-x` * for new users. Supports both idToken (Firebase) and tempToken (from phoneLogin) authentication.
+ * x` * for new users. Supports both idToken (Firebase) and tempToken (from phoneLogin)
+ * authentication.
  */
 @Getter
 @Setter

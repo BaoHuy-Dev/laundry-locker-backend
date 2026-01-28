@@ -4,8 +4,6 @@ import com.huynqb.laundrylockerbackend.core.model.BaseModel;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.partner.enums.AccessCodeAction;
 import com.huynqb.laundrylockerbackend.module.partner.enums.AccessCodeStatus;
-import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

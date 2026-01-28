@@ -52,6 +52,8 @@ public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter
       emailVerificationFilter;
+  private final com.huynqb.laundrylockerbackend.core.security.handler.CustomAuthenticationEntryPoint
+      customAuthenticationEntryPoint;
 
   // ==================== Configuration Properties ====================
   @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
@@ -114,6 +116,10 @@ public class SecurityConfig {
     http
         // Disable CSRF for stateless APIs
         .csrf(csrf -> csrf.disable())
+
+        // Handle unauthorized attempts - REST APIs should return 401, not redirect to
+        // login page
+        .exceptionHandling(e -> e.authenticationEntryPoint(customAuthenticationEntryPoint))
 
         // Apply CORS configuration
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))

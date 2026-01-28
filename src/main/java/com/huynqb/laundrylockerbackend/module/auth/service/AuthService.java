@@ -109,8 +109,8 @@ public class AuthService {
   }
 
   /**
-   * Complete registration for new phone users. Called after phone OTP verification.
-   * Supports both tempToken (preferred) and Firebase idToken authentication.
+   * Complete registration for new phone users. Called after phone OTP verification. Supports both
+   * tempToken (preferred) and Firebase idToken authentication.
    *
    * @param request Registration details with tempToken or Firebase ID token
    * @return Authentication response with JWT tokens
@@ -122,7 +122,7 @@ public class AuthService {
 
     // Try tempToken first (preferred method)
     if (request.getTempToken() != null && !request.getTempToken().isBlank()) {
-      phoneNumber = tokenService.getPhoneByTempToken(request.getTempToken());
+      phoneNumber = tokenService.getIdentifierByTempToken(request.getTempToken());
       if (phoneNumber == null) {
         throw new AuthenticationException(E_AUTH008); // Invalid or expired temp token
       }
@@ -228,9 +228,18 @@ public class AuthService {
           .build();
     } else {
       // New user - return flag to complete registration
+      // Generate temp token and save to Redis for registration
+      String tempToken = UUID.randomUUID().toString();
+      long tempTokenTtl = 600000L; // 10 minutes
+      tokenService.saveTempRegistrationToken(tempToken, email, tempTokenTtl);
+
       log.info("New email user detected, needs registration: {}", email);
 
-      return EmailLoginResponse.builder().isNewUser(true).otpVerified(true).build();
+      return EmailLoginResponse.builder()
+          .isNewUser(true)
+          .otpVerified(true)
+          .tempToken(tempToken)
+          .build();
     }
   }
 
@@ -242,12 +251,15 @@ public class AuthService {
    */
   @Transactional
   public AuthResponse emailCompleteRegistration(EmailCompleteRegistrationRequest request) {
-    String email = request.getEmail().trim().toLowerCase();
+    // Validate temp token
+    String email = tokenService.getIdentifierByTempToken(request.getTempToken());
 
-    // Verify OTP again for security
-    if (!emailOtpService.verifyOtp(email, request.getOtp())) {
-      throw new AuthenticationException(E_OTP001);
+    if (email == null) {
+      throw new AuthenticationException(E_AUTH008); // Invalid or expired temp token
     }
+
+    // Delete temp token after use
+    tokenService.deleteTempToken(request.getTempToken());
 
     // Check if user already exists
     if (userRepository.findByEmail(email).isPresent()) {

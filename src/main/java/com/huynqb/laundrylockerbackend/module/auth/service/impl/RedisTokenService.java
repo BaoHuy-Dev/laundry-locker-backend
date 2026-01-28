@@ -128,15 +128,17 @@ public class RedisTokenService implements TokenService {
   private static final String TEMP_REGISTRATION_PREFIX = "temp:registration:";
 
   @Override
-  public void saveTempRegistrationToken(String tempToken, String phoneNumber, long expirationMs) {
+  public void saveTempRegistrationToken(String tempToken, String identifier, long expirationMs) {
     String key = TEMP_REGISTRATION_PREFIX + tempToken;
-    redisTemplate.opsForValue().set(key, phoneNumber, expirationMs, TimeUnit.MILLISECONDS);
+    redisTemplate.opsForValue().set(key, identifier, expirationMs, TimeUnit.MILLISECONDS);
     log.debug(
-        "Redis - Saved temp registration token for phone: {}, TTL: {}ms", phoneNumber, expirationMs);
+        "Redis - Saved temp registration token for identifier: {}, TTL: {}ms",
+        identifier,
+        expirationMs);
   }
 
   @Override
-  public String getPhoneByTempToken(String tempToken) {
+  public String getIdentifierByTempToken(String tempToken) {
     String key = TEMP_REGISTRATION_PREFIX + tempToken;
     return redisTemplate.opsForValue().get(key);
   }
@@ -145,7 +147,8 @@ public class RedisTokenService implements TokenService {
   public void deleteTempToken(String tempToken) {
     String key = TEMP_REGISTRATION_PREFIX + tempToken;
     redisTemplate.delete(key);
-    log.debug("Redis - Deleted temp registration token: {}...",
+    log.debug(
+        "Redis - Deleted temp registration token: {}...",
         tempToken.substring(0, Math.min(20, tempToken.length())));
   }
 }

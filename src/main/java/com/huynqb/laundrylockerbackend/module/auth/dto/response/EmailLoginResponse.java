@@ -29,4 +29,7 @@ public class EmailLoginResponse {
 
   /** True if OTP was verified successfully. */
   private boolean otpVerified;
+
+  /** Temporary token for registration completion (only for new users). */
+  private String tempToken;
 }
