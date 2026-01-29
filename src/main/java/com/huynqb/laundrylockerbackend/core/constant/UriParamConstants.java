@@ -165,6 +165,11 @@ public class UriParamConstants {
   public static final String PARTNER_ORDERS_ACCEPT = "/orders/{orderId}/accept";
   public static final String PARTNER_ORDERS_PROCESS = "/orders/{orderId}/process";
   public static final String PARTNER_ORDERS_READY = "/orders/{orderId}/ready";
+  public static final String PARTNER_ORDERS_WEIGHT = "/orders/{orderId}/weight";
+  public static final String PARTNER_ORDERS_STATISTICS = "/orders/statistics";
+  public static final String PARTNER_LOCKERS = "/lockers";
+  public static final String PARTNER_LOCKERS_BOXES_AVAILABLE =
+      "/lockers/{lockerId}/boxes/available";
   public static final String PARTNER_REVENUE = "/revenue";
 
   // ===== Staff Access Code URIs =====

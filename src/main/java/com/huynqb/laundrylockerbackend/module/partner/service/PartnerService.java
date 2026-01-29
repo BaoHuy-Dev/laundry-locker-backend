@@ -1,5 +1,9 @@
 package com.huynqb.laundrylockerbackend.module.partner.service;
 
+import com.huynqb.laundrylockerbackend.module.locker.dto.response.BoxResponse;
+import com.huynqb.laundrylockerbackend.module.locker.dto.response.LockerResponse;
+import com.huynqb.laundrylockerbackend.module.locker.service.LockerService;
+import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.mapper.OrderMapper;
@@ -7,8 +11,11 @@ import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
 import com.huynqb.laundrylockerbackend.module.partner.dto.request.GenerateAccessCodeRequest;
 import com.huynqb.laundrylockerbackend.module.partner.dto.request.PartnerRegistrationRequest;
+import com.huynqb.laundrylockerbackend.module.partner.dto.request.PartnerUpdateRequest;
 import com.huynqb.laundrylockerbackend.module.partner.dto.response.PartnerDashboardResponse;
+import com.huynqb.laundrylockerbackend.module.partner.dto.response.PartnerOrderStatisticsResponse;
 import com.huynqb.laundrylockerbackend.module.partner.dto.response.PartnerResponse;
+import com.huynqb.laundrylockerbackend.module.partner.dto.response.PartnerRevenueResponse;
 import com.huynqb.laundrylockerbackend.module.partner.dto.response.StaffAccessCodeResponse;
 import com.huynqb.laundrylockerbackend.module.partner.enums.AccessCodeAction;
 import com.huynqb.laundrylockerbackend.module.partner.enums.PartnerStatus;
@@ -32,6 +39,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +68,7 @@ public class PartnerService {
   private final UserMapper userMapper;
   private final OrderMapper orderMapper;
   private final StaffAccessCodeService accessCodeService;
+  private final LockerService lockerService;
 
   // ===== Partner Registration =====
 
@@ -71,7 +80,12 @@ public class PartnerService {
       throw PartnerException.alreadyExists();
     }
 
-    Partner partner = buildPartnerFromRequest(user, request);
+    Partner partner = partnerMapper.toEntity(request);
+    partner.setUser(user);
+    partner.setStatus(PartnerStatus.PENDING);
+    if (partner.getContactEmail() == null) {
+      partner.setContactEmail(user.getEmail());
+    }
     partner = partnerRepository.save(partner);
 
     log.info("User {} registered as partner {}", userId, partner.getId());
@@ -276,7 +290,233 @@ public class PartnerService {
         partner.getId(), orderId, AccessCodeAction.RETURN, expirationHours, notes);
   }
 
-  // ===== Private Helper Methods =====
+  // ===== Order Detail & Weight Update =====
+
+  @Transactional(readOnly = true)
+  public OrderResponse getOrderDetail(Long userId, Long orderId) {
+    Partner partner = getApprovedPartner(userId);
+    Order order = findOrderById(orderId);
+
+    PartnerOrderValidator.validateOrderBelongsToPartner(order, partner);
+
+    return orderMapper.toResponse(order);
+  }
+
+  @Transactional
+  public OrderResponse updateOrderWeight(
+      Long userId, Long orderId, UpdateOrderWeightRequest request) {
+    Partner partner = getApprovedPartner(userId);
+    Order order = findOrderById(orderId);
+
+    PartnerOrderValidator.validateOrderBelongsToPartner(order, partner);
+
+    // Validate status - can only update weight after COLLECTED
+    if (order.getStatus() != OrderStatus.COLLECTED && order.getStatus() != OrderStatus.PROCESSING) {
+      throw new RuntimeException(
+          "Order weight can only be updated when status is COLLECTED or PROCESSING");
+    }
+
+    // Update weight info
+    order.setActualWeight(request.getActualWeight());
+    order.setWeightUnit(request.getWeightUnit());
+    if (request.getStaffNote() != null) {
+      order.setStaffNote(request.getStaffNote());
+    }
+
+    Order savedOrder = orderRepository.save(order);
+    log.info(
+        "Order {} weight updated to {} {} by partner {}",
+        orderId,
+        request.getActualWeight(),
+        request.getWeightUnit(),
+        partner.getId());
+
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  // ===== Partner Profile Update =====
+
+  @Transactional
+  public PartnerResponse updatePartner(Long userId, PartnerUpdateRequest request) {
+    Partner partner = findPartnerByUserId(userId);
+    partnerMapper.updateFromUpdateRequest(request, partner);
+    partner = partnerRepository.save(partner);
+    log.info("Partner {} profile updated", partner.getId());
+    return partnerMapper.toResponse(partner);
+  }
+
+  // ===== Partner Lockers =====
+
+  @Transactional(readOnly = true)
+  public List<LockerResponse> getPartnerLockers(Long userId) {
+    Partner partner = getApprovedPartner(userId);
+    List<Long> storeIds = getStoreIds(partner);
+
+    if (storeIds.isEmpty()) {
+      return List.of();
+    }
+
+    return storeIds.stream()
+        .flatMap(storeId -> lockerService.getLockersByStore(storeId).stream())
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<BoxResponse> getPartnerLockerAvailableBoxes(Long userId, Long lockerId) {
+    Partner partner = getApprovedPartner(userId);
+    List<Long> storeIds = getStoreIds(partner);
+
+    // Validate locker belongs to partner's stores
+    LockerResponse locker = lockerService.getLockerById(lockerId);
+    if (!storeIds.contains(locker.getStoreId())) {
+      throw PartnerException.storeNotOwned();
+    }
+
+    return lockerService.getAvailableBoxes(lockerId);
+  }
+
+  // ===== Partner Revenue & Statistics =====
+
+  @Transactional(readOnly = true)
+  public PartnerRevenueResponse getPartnerRevenue(
+      Long userId, LocalDateTime fromDate, LocalDateTime toDate) {
+    Partner partner = getApprovedPartner(userId);
+    List<Long> storeIds = getStoreIds(partner);
+
+    if (storeIds.isEmpty()) {
+      return buildEmptyRevenueResponse(partner, fromDate, toDate);
+    }
+
+    BigDecimal grossRevenue =
+        Objects.requireNonNullElse(
+            orderRepository.sumRevenueByStoreIdsAndDateRange(storeIds, fromDate, toDate),
+            BigDecimal.ZERO);
+
+    long totalOrders = orderRepository.countByStoreIdsAndDateRange(storeIds, fromDate, toDate);
+    long completedOrders =
+        orderRepository.countByStoreIdsAndStatusAndDateRange(
+            storeIds, OrderStatus.COMPLETED, fromDate, toDate);
+    long canceledOrders =
+        orderRepository.countByStoreIdsAndStatusAndDateRange(
+            storeIds, OrderStatus.CANCELED, fromDate, toDate);
+
+    BigDecimal partnerRevenue = calculatePartnerRevenue(grossRevenue, partner);
+    BigDecimal platformFee = grossRevenue.subtract(partnerRevenue);
+
+    return PartnerRevenueResponse.builder()
+        .partnerId(partner.getId())
+        .businessName(partner.getBusinessName())
+        .fromDate(fromDate)
+        .toDate(toDate)
+        .grossRevenue(grossRevenue)
+        .partnerRevenue(partnerRevenue)
+        .platformFee(platformFee)
+        .revenueSharePercent(partner.getRevenueSharePercent())
+        .totalOrders(totalOrders)
+        .completedOrders(completedOrders)
+        .canceledOrders(canceledOrders)
+        .build();
+  }
+
+  @Transactional(readOnly = true)
+  public PartnerOrderStatisticsResponse getPartnerOrderStatistics(Long userId) {
+    Partner partner = getApprovedPartner(userId);
+    List<Long> storeIds = getStoreIds(partner);
+
+    if (storeIds.isEmpty()) {
+      return buildEmptyStatisticsResponse(partner);
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+    LocalDateTime startOfWeek = now.minusDays(7);
+    LocalDateTime startOfMonth = now.minusDays(30);
+
+    // Count orders by status
+    OrderStatusCounts statusCounts = countOrdersByStatus(storeIds);
+
+    // Count orders by time period
+    long todayOrders = orderRepository.countByStoreIdsAndDateRange(storeIds, startOfToday, now);
+    long weekOrders = orderRepository.countByStoreIdsAndDateRange(storeIds, startOfWeek, now);
+    long monthOrders = orderRepository.countByStoreIdsAndDateRange(storeIds, startOfMonth, now);
+
+    // Revenue metrics
+    BigDecimal totalRevenue = getRevenueOrZero(orderRepository.sumRevenueByStoreIds(storeIds));
+    BigDecimal todayRevenue =
+        getRevenueOrZero(
+            orderRepository.sumRevenueByStoreIdsAndDateRange(storeIds, startOfToday, now));
+    BigDecimal weekRevenue =
+        getRevenueOrZero(
+            orderRepository.sumRevenueByStoreIdsAndDateRange(storeIds, startOfWeek, now));
+    BigDecimal monthRevenue =
+        getRevenueOrZero(
+            orderRepository.sumRevenueByStoreIdsAndDateRange(storeIds, startOfMonth, now));
+
+    BigDecimal averageOrderValue =
+        statusCounts.completed > 0
+            ? totalRevenue.divide(
+                BigDecimal.valueOf(statusCounts.completed), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+    return PartnerOrderStatisticsResponse.builder()
+        .partnerId(partner.getId())
+        .totalOrders(statusCounts.total)
+        .todayOrders(todayOrders)
+        .weekOrders(weekOrders)
+        .monthOrders(monthOrders)
+        .waitingOrders(statusCounts.waiting)
+        .collectedOrders(statusCounts.collected)
+        .processingOrders(statusCounts.processing)
+        .readyOrders(statusCounts.ready)
+        .returnedOrders(statusCounts.returned)
+        .completedOrders(statusCounts.completed)
+        .canceledOrders(statusCounts.canceled)
+        .totalRevenue(totalRevenue)
+        .todayRevenue(todayRevenue)
+        .weekRevenue(weekRevenue)
+        .monthRevenue(monthRevenue)
+        .averageOrderValue(averageOrderValue)
+        .build();
+  }
+
+  private PartnerRevenueResponse buildEmptyRevenueResponse(
+      Partner partner, LocalDateTime fromDate, LocalDateTime toDate) {
+    return PartnerRevenueResponse.builder()
+        .partnerId(partner.getId())
+        .businessName(partner.getBusinessName())
+        .fromDate(fromDate)
+        .toDate(toDate)
+        .grossRevenue(BigDecimal.ZERO)
+        .partnerRevenue(BigDecimal.ZERO)
+        .platformFee(BigDecimal.ZERO)
+        .revenueSharePercent(partner.getRevenueSharePercent())
+        .totalOrders(0)
+        .completedOrders(0)
+        .canceledOrders(0)
+        .build();
+  }
+
+  private PartnerOrderStatisticsResponse buildEmptyStatisticsResponse(Partner partner) {
+    return PartnerOrderStatisticsResponse.builder()
+        .partnerId(partner.getId())
+        .totalOrders(0)
+        .todayOrders(0)
+        .weekOrders(0)
+        .monthOrders(0)
+        .waitingOrders(0)
+        .collectedOrders(0)
+        .processingOrders(0)
+        .readyOrders(0)
+        .returnedOrders(0)
+        .completedOrders(0)
+        .canceledOrders(0)
+        .totalRevenue(BigDecimal.ZERO)
+        .todayRevenue(BigDecimal.ZERO)
+        .weekRevenue(BigDecimal.ZERO)
+        .monthRevenue(BigDecimal.ZERO)
+        .averageOrderValue(BigDecimal.ZERO)
+        .build();
+  }
 
   private User findUserById(Long userId) {
     return userRepository
@@ -315,6 +555,38 @@ public class PartnerService {
     return partner.getStores().stream().map(Store::getId).collect(Collectors.toList());
   }
 
+  private BigDecimal getRevenueOrZero(BigDecimal revenue) {
+    return Objects.requireNonNullElse(revenue, BigDecimal.ZERO);
+  }
+
+  private BigDecimal calculatePartnerRevenue(BigDecimal grossRevenue, Partner partner) {
+    return grossRevenue
+        .multiply(partner.getRevenueSharePercent())
+        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+  }
+
+  private record OrderStatusCounts(
+      long total,
+      long waiting,
+      long collected,
+      long processing,
+      long ready,
+      long returned,
+      long completed,
+      long canceled) {}
+
+  private OrderStatusCounts countOrdersByStatus(List<Long> storeIds) {
+    return new OrderStatusCounts(
+        orderRepository.countByStoreIds(storeIds),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.WAITING),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.COLLECTED),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.PROCESSING),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.READY),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.RETURNED),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.COMPLETED),
+        orderRepository.countByStoreIdsAndStatus(storeIds, OrderStatus.CANCELED));
+  }
+
   private Page<OrderResponse> getOrdersByStatus(
       Long userId, OrderStatus status, Pageable pageable) {
     Partner partner = getApprovedPartner(userId);
@@ -343,21 +615,6 @@ public class PartnerService {
             .notes(notes)
             .build();
     return accessCodeService.generateAccessCode(partnerId, request);
-  }
-
-  private Partner buildPartnerFromRequest(User user, PartnerRegistrationRequest request) {
-    return Partner.builder()
-        .user(user)
-        .businessName(request.getBusinessName())
-        .businessRegistrationNumber(request.getBusinessRegistrationNumber())
-        .taxId(request.getTaxId())
-        .businessAddress(request.getBusinessAddress())
-        .contactPhone(request.getContactPhone())
-        .contactEmail(
-            request.getContactEmail() != null ? request.getContactEmail() : user.getEmail())
-        .status(PartnerStatus.PENDING)
-        .notes(request.getNotes())
-        .build();
   }
 
   private void validateApprovedStatus(Partner partner) {

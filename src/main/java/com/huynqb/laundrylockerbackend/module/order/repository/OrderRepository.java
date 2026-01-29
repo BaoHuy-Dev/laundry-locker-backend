@@ -116,4 +116,31 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
   @Query("SELECT o FROM Order o WHERE o.locker.store.id IN :storeIds AND o.deleteFlag = false")
   Page<Order> findByStoreIds(@Param("storeIds") List<Long> storeIds, Pageable pageable);
+
+  // ===== Partner Date Range Statistics Queries =====
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.locker.store.id IN :storeIds "
+          + "AND o.createdAt >= :fromDate AND o.createdAt < :toDate AND o.deleteFlag = false")
+  long countByStoreIdsAndDateRange(
+      @Param("storeIds") List<Long> storeIds,
+      @Param("fromDate") LocalDateTime fromDate,
+      @Param("toDate") LocalDateTime toDate);
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.locker.store.id IN :storeIds "
+          + "AND o.status = :status AND o.createdAt >= :fromDate AND o.createdAt < :toDate AND o.deleteFlag = false")
+  long countByStoreIdsAndStatusAndDateRange(
+      @Param("storeIds") List<Long> storeIds,
+      @Param("status") OrderStatus status,
+      @Param("fromDate") LocalDateTime fromDate,
+      @Param("toDate") LocalDateTime toDate);
+
+  @Query(
+      "SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.locker.store.id IN :storeIds "
+          + "AND o.status = 'COMPLETED' AND o.createdAt >= :fromDate AND o.createdAt < :toDate AND o.deleteFlag = false")
+  java.math.BigDecimal sumRevenueByStoreIdsAndDateRange(
+      @Param("storeIds") List<Long> storeIds,
+      @Param("fromDate") LocalDateTime fromDate,
+      @Param("toDate") LocalDateTime toDate);
 }
