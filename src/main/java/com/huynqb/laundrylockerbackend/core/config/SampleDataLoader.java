@@ -254,7 +254,7 @@ public class SampleDataLoader {
     // Admin
     users.add(
         createUser(
-            "admin@laundrylocker.com", "System", "Admin", "0900000001", pwd, Set.of(adminRole)));
+            "baohuy2k12k4@gmail.com", "System", "Admin", "0900000001", pwd, Set.of(adminRole)));
 
     // Partners (3)
     users.add(
@@ -343,7 +343,7 @@ public class SampleDataLoader {
 
   // ==================== PARTNERS ====================
   private List<Partner> createPartners() {
-    User admin = findUserByEmail("admin@laundrylocker.com");
+    User admin = findUserByEmail("baohuy2k12k4@gmail.com");
     User minh = findUserByEmail("partner.minh@gmail.com");
     User huong = findUserByEmail("partner.huong@gmail.com");
     User nam = findUserByEmail("partner.nam@gmail.com");
@@ -1554,7 +1554,7 @@ public class SampleDataLoader {
     log.info("└──────────────────────────────────────────────┘");
     log.info("");
     log.info("🔐 TEST ACCOUNTS (password: {}):", DEFAULT_PASSWORD);
-    log.info("   Admin:    admin@laundrylocker.com");
+    log.info("   Admin:    baohuy2k12k4@gmail.com");
     log.info("   Partners: partner.minh@gmail.com, partner.huong@gmail.com");
     log.info("   Customers: customer.huy@gmail.com, customer.lan@gmail.com, ...");
     log.info("");

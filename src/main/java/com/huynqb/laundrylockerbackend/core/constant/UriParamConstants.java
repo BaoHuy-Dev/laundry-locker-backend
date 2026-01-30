@@ -18,6 +18,7 @@ public class UriParamConstants {
   public static final String ROOT_URI_NOTIFICATIONS = "/api/notifications";
 
   // ===== Admin Module URIs =====
+  public static final String ROOT_URI_ADMIN_AUTH = "/api/admin/auth";
   public static final String ROOT_URI_ADMIN_DASHBOARD = "/api/admin/dashboard";
   public static final String ROOT_URI_ADMIN_USERS = "/api/admin/users";
   public static final String ROOT_URI_ADMIN_STORES = "/api/admin/stores";
@@ -32,6 +33,11 @@ public class UriParamConstants {
   // ===== Token Management =====
   public static final String REFRESH_TOKEN = "/refresh-token";
   public static final String LOGOUT = "/logout";
+
+  // ===== Admin Auth Endpoints =====
+  public static final String ADMIN_AUTH_LOGIN = "/login";
+  public static final String ADMIN_AUTH_VERIFY_2FA = "/verify-2fa";
+  public static final String ADMIN_AUTH_REFRESH = "/refresh";
 
   // ===== Phone OTP Authentication =====
   public static final String PHONE_LOGIN = "/phone-login";

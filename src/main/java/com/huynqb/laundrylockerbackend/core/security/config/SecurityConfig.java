@@ -68,7 +68,9 @@ public class SecurityConfig {
   // ==================== Public Endpoints ====================
   private static final String[] PUBLIC_ENDPOINTS = {"/", "/error", "/favicon.ico"};
 
-  private static final String[] AUTH_ENDPOINTS = {"/api/auth/**", "/oauth2/**", "/login/oauth2/**"};
+  private static final String[] AUTH_ENDPOINTS = {
+    "/api/auth/**", "/api/admin/auth/**", "/oauth2/**", "/login/oauth2/**"
+  };
 
   private static final String[] SWAGGER_ENDPOINTS = {
     "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**"

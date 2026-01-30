@@ -16,6 +16,7 @@ public class TagConstants {
   public static final String ROOT_TAG_NOTIFICATIONS = "NOTIFICATIONS";
 
   // ===== Admin Module Tags =====
+  public static final String ROOT_TAG_ADMIN_AUTH = "ADMIN - AUTH";
   public static final String ROOT_TAG_ADMIN_DASHBOARD = "ADMIN - DASHBOARD";
   public static final String ROOT_TAG_ADMIN_USERS = "ADMIN - USERS";
   public static final String ROOT_TAG_ADMIN_STORES = "ADMIN - STORES";
