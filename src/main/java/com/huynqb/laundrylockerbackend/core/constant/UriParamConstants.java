@@ -63,6 +63,7 @@ public class UriParamConstants {
   // ===== Order Endpoints =====
   public static final String BY_ORDER_ID = "/{orderId}";
   public static final String BY_PIN_CODE = "/pin/{pinCode}";
+  public static final String ORDER_STATUS = "/{orderId}/status";
   public static final String CHECKOUT = "/{orderId}/checkout";
   public static final String COLLECT = "/{orderId}/collect";
   public static final String RETURN = "/{orderId}/return";
@@ -97,6 +98,7 @@ public class UriParamConstants {
   public static final String ADMIN_STATUS = "/{id}/status";
   public static final String ADMIN_ROLES = "/{id}/roles";
   public static final String ADMIN_PRICE = "/{id}/price";
+  public static final String ADMIN_IMAGE = "/{id}/image";
   public static final String ADMIN_MAINTENANCE = "/{id}/maintenance";
   public static final String ADMIN_BOXES = "/{id}/boxes";
   public static final String ADMIN_BOX_STATUS = "/boxes/{boxId}/status";
@@ -114,6 +116,7 @@ public class UriParamConstants {
 
   // ===== User Endpoints (Extended) =====
   public static final String UPDATE_PROFILE = "/profile";
+  public static final String UPDATE_AVATAR = "/avatar";
   public static final String CHANGE_PASSWORD = "/password";
   public static final String FCM_TOKEN = "/fcm-token";
 

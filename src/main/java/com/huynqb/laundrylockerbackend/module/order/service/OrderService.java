@@ -13,6 +13,7 @@ import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderReque
 import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderItemRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
+import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderStatusResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.exception.OrderException;
 import com.huynqb.laundrylockerbackend.module.order.mapper.OrderMapper;
@@ -250,6 +251,76 @@ public class OrderService {
   @Transactional(readOnly = true)
   public OrderResponse getOrderById(Long orderId) {
     return orderMapper.toResponse(findOrderById(orderId));
+  }
+
+  @Transactional(readOnly = true)
+  public OrderStatusResponse getOrderStatus(Long orderId, Long userId) {
+    log.info("Getting order status for order: {} by user: {}", orderId, userId);
+    Order order = findOrderById(orderId);
+
+    // Verify user owns this order
+    if (!order.getSender().getId().equals(userId)) {
+      throw new OrderException("E_ORDER_NOT_OWNER");
+    }
+
+    return buildOrderStatusResponse(order);
+  }
+
+  private OrderStatusResponse buildOrderStatusResponse(Order order) {
+    // Check if paid
+    List<Payment> payments = paymentRepository.findByOrderId(order.getId());
+    boolean isPaid = payments.stream().anyMatch(p -> p.getStatus() == PaymentStatus.COMPLETED);
+
+    // Get box number based on status
+    Integer boxNumber = null;
+    if (order.getReceiveBox() != null) {
+      boxNumber = order.getReceiveBox().getBoxNumber();
+    } else if (order.getSendBox() != null) {
+      boxNumber = order.getSendBox().getBoxNumber();
+    }
+
+    return OrderStatusResponse.builder()
+        .orderId(order.getId())
+        .status(order.getStatus())
+        .statusDescription(getStatusDescription(order.getStatus()))
+        .pinCode(order.getPinCode())
+        .lockerName(order.getLocker() != null ? order.getLocker().getName() : null)
+        .lockerCode(order.getLocker() != null ? order.getLocker().getCode() : null)
+        .boxNumber(boxNumber)
+        .createdAt(order.getCreatedAt())
+        .updatedAt(order.getUpdatedAt())
+        .estimatedReadyAt(order.getIntendedReceiveAt())
+        .completedAt(order.getCompletedAt())
+        .isPaid(isPaid)
+        .nextAction(getNextAction(order.getStatus(), isPaid))
+        .build();
+  }
+
+  private String getStatusDescription(OrderStatus status) {
+    return switch (status) {
+      case INITIALIZED -> "Đơn hàng mới tạo, chờ bạn bỏ đồ vào tủ";
+      case RESERVED -> "Đã đặt chỗ, chờ xác nhận";
+      case WAITING -> "Đã bỏ đồ, chờ nhân viên thu gom";
+      case COLLECTED -> "Nhân viên đã lấy đồ, đang vận chuyển";
+      case PROCESSING -> "Đồ đang được giặt/xử lý";
+      case READY -> "Đồ đã giặt xong, chờ trả vào tủ";
+      case RETURNED -> "Đồ đã trả vào tủ, sẵn sàng lấy";
+      case COMPLETED -> "Đơn hàng hoàn thành";
+      case CANCELED -> "Đơn hàng đã hủy";
+    };
+  }
+
+  private String getNextAction(OrderStatus status, boolean isPaid) {
+    return switch (status) {
+      case INITIALIZED -> "Mang đồ đến tủ và nhập mã PIN để mở tủ, bỏ đồ vào";
+      case RESERVED -> "Xác nhận đơn hàng";
+      case WAITING -> "Chờ nhân viên đến lấy đồ";
+      case COLLECTED, PROCESSING -> "Chờ đồ được xử lý";
+      case READY -> "Chờ nhân viên trả đồ vào tủ";
+      case RETURNED -> isPaid ? "Đến tủ, nhập mã PIN để lấy đồ" : "Thanh toán để lấy đồ";
+      case COMPLETED -> "Đánh giá dịch vụ";
+      case CANCELED -> "Tạo đơn hàng mới";
+    };
   }
 
   @Transactional(readOnly = true)

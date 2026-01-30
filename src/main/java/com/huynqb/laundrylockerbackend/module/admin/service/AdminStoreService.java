@@ -72,6 +72,15 @@ public class AdminStoreService {
   }
 
   @Transactional
+  public AdminStoreResponse updateStoreImage(Long id, String imageUrl) {
+    Store store = findStoreById(id);
+    store.setImage(imageUrl);
+    store = storeRepository.save(store);
+    log.info("Admin updated store image: {}", id);
+    return toResponseWithLockerCount(store);
+  }
+
+  @Transactional
   public void deleteStore(Long id) {
     Store store = findStoreById(id);
     store.setDeleteFlag(true);

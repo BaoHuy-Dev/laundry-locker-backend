@@ -4,6 +4,7 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.dto.UpdateImageRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateBoxRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateLockerRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AdminLockerResponse;
@@ -104,6 +105,16 @@ public class AdminLockerController {
     BoxStatus status = BoxStatus.valueOf(request.get("status"));
     adminLockerService.updateBoxStatus(boxId, status);
     return ResponseEntity.ok(responseHelper.success("BOX_STATUS_UPDATED"));
+  }
+
+  @Operation(summary = "Update Locker Image", description = "Update locker image URL")
+  @PutMapping(UriParamConstants.ADMIN_IMAGE)
+  public ResponseEntity<ApiResponse<AdminLockerResponse>> updateLockerImage(
+      @PathVariable Long id, @Valid @RequestBody UpdateImageRequest request) {
+    return ResponseEntity.ok(
+        responseHelper.success(
+            adminLockerService.updateLockerImage(id, request.getImageUrl()),
+            "LOCKER_IMAGE_UPDATED"));
   }
 
   @Operation(summary = "Delete Locker", description = "Soft delete a locker")

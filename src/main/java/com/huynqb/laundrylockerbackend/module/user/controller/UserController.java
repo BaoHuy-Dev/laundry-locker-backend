@@ -4,6 +4,7 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.dto.UpdateImageRequest;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.ChangePasswordRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.FcmTokenRequest;
@@ -93,6 +94,18 @@ public class UserController {
     Long userId = extractUserId(authHeader);
     UserResponse response = userService.updateProfile(userId, request);
     return ResponseEntity.ok(responseHelper.success(response, "PROFILE_UPDATED"));
+  }
+
+  /** Update user avatar. */
+  @Operation(summary = "Update Avatar", description = "Update current user's avatar image")
+  @PutMapping(UriParamConstants.UPDATE_AVATAR)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<UserResponse>> updateAvatar(
+      @Valid @RequestBody UpdateImageRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    UserResponse response = userService.updateAvatar(userId, request.getImageUrl());
+    return ResponseEntity.ok(responseHelper.success(response, "AVATAR_UPDATED"));
   }
 
   /** Change password. */

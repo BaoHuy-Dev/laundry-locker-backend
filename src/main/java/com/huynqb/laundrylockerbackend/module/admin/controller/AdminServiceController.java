@@ -4,6 +4,7 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.dto.UpdateImageRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateServiceRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserStatusRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AdminServiceResponse;
@@ -86,6 +87,16 @@ public class AdminServiceController {
     return ResponseEntity.ok(
         responseHelper.success(
             adminServiceService.updateStatus(id, request.getEnabled()), "SERVICE_STATUS_UPDATED"));
+  }
+
+  @Operation(summary = "Update Service Image", description = "Update service image URL")
+  @PutMapping(UriParamConstants.ADMIN_IMAGE)
+  public ResponseEntity<ApiResponse<AdminServiceResponse>> updateServiceImage(
+      @PathVariable Long id, @Valid @RequestBody UpdateImageRequest request) {
+    return ResponseEntity.ok(
+        responseHelper.success(
+            adminServiceService.updateServiceImage(id, request.getImageUrl()),
+            "SERVICE_IMAGE_UPDATED"));
   }
 
   @Operation(summary = "Delete Service", description = "Soft delete a service")

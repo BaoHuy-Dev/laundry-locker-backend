@@ -4,6 +4,7 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.dto.UpdateImageRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateStoreRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.UpdateUserStatusRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AdminStoreResponse;
@@ -73,6 +74,15 @@ public class AdminStoreController {
     return ResponseEntity.ok(
         responseHelper.success(
             adminStoreService.updateStoreStatus(id, request.getEnabled()), "STORE_STATUS_UPDATED"));
+  }
+
+  @Operation(summary = "Update Store Image", description = "Update store image URL")
+  @PutMapping(UriParamConstants.ADMIN_IMAGE)
+  public ResponseEntity<ApiResponse<AdminStoreResponse>> updateStoreImage(
+      @PathVariable Long id, @Valid @RequestBody UpdateImageRequest request) {
+    return ResponseEntity.ok(
+        responseHelper.success(
+            adminStoreService.updateStoreImage(id, request.getImageUrl()), "STORE_IMAGE_UPDATED"));
   }
 
   @Operation(summary = "Delete Store", description = "Soft delete a store")

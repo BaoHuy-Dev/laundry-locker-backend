@@ -9,6 +9,7 @@ import com.huynqb.laundrylockerbackend.module.order.dto.request.CheckoutOrderReq
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
+import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderStatusResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderService;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
@@ -73,6 +74,19 @@ public class OrderController {
   public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long orderId) {
     OrderResponse response = orderService.getOrderById(orderId);
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_RETRIEVED"));
+  }
+
+  /** Get order status - lightweight endpoint for status tracking. */
+  @Operation(
+      summary = "Get Order Status",
+      description = "Retrieve order status with next action hints for user")
+  @GetMapping(UriParamConstants.ORDER_STATUS)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderStatusResponse>> getOrderStatus(
+      @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderStatusResponse response = orderService.getOrderStatus(orderId, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_STATUS_RETRIEVED"));
   }
 
   /** Get order by PIN code. */

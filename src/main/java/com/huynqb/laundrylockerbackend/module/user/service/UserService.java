@@ -136,4 +136,21 @@ public class UserService {
             .orElseThrow(() -> new RuntimeException("User not found: " + userId));
     return userMapper.toResponse(user);
   }
+
+  /** Update user avatar. */
+  @Transactional
+  public UserResponse updateAvatar(Long userId, String imageUrl) {
+    log.info("Updating avatar for user: {} with URL: {}", userId, imageUrl);
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+    user.setImageUrl(imageUrl);
+    User updatedUser = userRepository.save(user);
+
+    log.info("Avatar updated successfully for user: {}", userId);
+    return userMapper.toResponse(updatedUser);
+  }
 }

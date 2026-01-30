@@ -83,6 +83,7 @@ public class AdminLockerService {
     updateIfNotNull(request.getName(), locker::setName);
     updateIfNotNull(request.getCode(), locker::setCode);
     updateIfNotNull(request.getAddress(), locker::setAddress);
+    updateIfNotNull(request.getImage(), locker::setImage);
 
     if (request.getStoreId() != null) {
       Store store = findStoreById(request.getStoreId());
@@ -91,6 +92,15 @@ public class AdminLockerService {
 
     locker = lockerRepository.save(locker);
     log.info("Admin updated locker: {}", id);
+    return toResponseWithBoxes(locker);
+  }
+
+  @Transactional
+  public AdminLockerResponse updateLockerImage(Long id, String imageUrl) {
+    Locker locker = findLockerById(id);
+    locker.setImage(imageUrl);
+    locker = lockerRepository.save(locker);
+    log.info("Admin updated locker image: {}", id);
     return toResponseWithBoxes(locker);
   }
 

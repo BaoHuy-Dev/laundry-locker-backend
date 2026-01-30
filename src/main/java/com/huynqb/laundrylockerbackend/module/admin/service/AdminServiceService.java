@@ -95,6 +95,15 @@ public class AdminServiceService {
   }
 
   @Transactional
+  public AdminServiceResponse updateServiceImage(Long id, String imageUrl) {
+    LaundryService service = findServiceById(id);
+    service.setImage(imageUrl);
+    service = serviceRepository.save(service);
+    log.info("Admin updated service image: {}", id);
+    return mapper.toResponse(service);
+  }
+
+  @Transactional
   public void deleteService(Long id) {
     LaundryService service = findServiceById(id);
     service.setDeleteFlag(true);
