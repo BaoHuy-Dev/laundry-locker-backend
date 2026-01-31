@@ -86,7 +86,8 @@ public class AuthService {
 
       log.info("Phone login successful for existing user: {}", phoneNumber);
 
-      return authMapper.toPhoneLoginResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+      return authMapper.toPhoneLoginResponse(
+          accessToken, refreshToken, jwtExpirationMs / 1000, user);
     } else {
       // New user - generate temp token and save to Redis for registration
       String tempToken = UUID.randomUUID().toString();
@@ -204,7 +205,8 @@ public class AuthService {
 
       log.info("Email login successful for existing user: {}", email);
 
-      return authMapper.toEmailLoginResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+      return authMapper.toEmailLoginResponse(
+          accessToken, refreshToken, jwtExpirationMs / 1000, user);
     } else {
       // New user - return flag to complete registration
       // Generate temp token and save to Redis for registration
