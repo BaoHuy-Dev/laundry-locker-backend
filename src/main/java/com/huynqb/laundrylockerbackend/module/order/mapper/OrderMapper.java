@@ -59,6 +59,8 @@ public interface OrderMapper {
       qualifiedByName = "mapAppliedPromotionCodes")
   @Mapping(target = "originalPrice", source = "originalPrice")
   @Mapping(target = "promotionDiscount", source = "discount")
+  // ===== ORDER DETAILS MAPPING =====
+  @Mapping(target = "orderDetails", source = "orderDetails")
   OrderResponse toResponse(Order order);
 
   List<OrderResponse> toResponseList(List<Order> orders);
@@ -67,6 +69,7 @@ public interface OrderMapper {
   @Mapping(target = "serviceName", source = "service.name")
   @Mapping(target = "serviceImage", source = "service.image")
   @Mapping(target = "unit", source = "service.unit")
+  @Mapping(target = "price", source = "price")
   OrderDetailResponse toDetailResponse(OrderDetail detail);
 
   List<OrderDetailResponse> toDetailResponseList(List<OrderDetail> details);
