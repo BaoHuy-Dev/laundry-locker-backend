@@ -3,9 +3,11 @@ package com.huynqb.laundrylockerbackend.module.loyalty.service;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.AdjustPointsRequest;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemPointsRequest;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemStampRequest;
+import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.ExpiringPointsResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltyAccountResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltySummaryResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.PointTransactionResponse;
+import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.RewardsResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampCardResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampTransactionResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.enums.PointTransactionType;
@@ -27,6 +29,9 @@ import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -564,10 +569,211 @@ public class LoyaltyService {
 
   /** Get stamp cards with available rewards. */
   @Transactional(readOnly = true)
-  public List<StampCardResponse> getAvailableRewards(Long userId) {
+  public List<StampCardResponse> getStampCardsWithRewards(Long userId) {
     return stampCardRepository.findCardsWithAvailableRewards(userId).stream()
         .map(loyaltyMapper::toStampCardResponse)
         .collect(Collectors.toList());
+  }
+
+  /** Get available rewards with user's current points. */
+  @Transactional(readOnly = true)
+  public RewardsResponse getAvailableRewards(Long userId) {
+    LoyaltyAccount account = getOrCreateAccount(userId);
+    int currentPoints = account.getPointsBalance().intValue();
+
+    // Determine membership tier based on total points earned
+    String membershipTier = determineMembershipTier(account.getTotalPointsEarned());
+    int pointsToNextTier =
+        calculatePointsToNextTier(account.getTotalPointsEarned(), membershipTier);
+
+    // Get available rewards - these would come from a rewards table
+    // For now, we create static rewards based on point levels
+    List<RewardsResponse.RewardItem> availableRewards =
+        buildAvailableRewards(currentPoints, membershipTier);
+
+    // Get recent redeemed rewards from point transactions
+    List<RewardsResponse.RedeemedReward> redeemedRewards =
+        pointTransactionRepository
+            .findByUserIdAndTypeOrderByCreatedAtDesc(userId, PointTransactionType.REDEEM)
+            .stream()
+            .limit(10)
+            .map(
+                tx ->
+                    RewardsResponse.RedeemedReward.builder()
+                        .id(tx.getId())
+                        .rewardName("Điểm đổi giảm giá")
+                        .pointsSpent(Math.abs(tx.getPoints().intValue()))
+                        .redeemedAt(tx.getCreatedAt())
+                        .code("RDM" + tx.getId())
+                        .status("USED")
+                        .build())
+            .collect(Collectors.toList());
+
+    return RewardsResponse.builder()
+        .currentPoints(currentPoints)
+        .membershipTier(membershipTier)
+        .pointsToNextTier(pointsToNextTier)
+        .availableRewards(availableRewards)
+        .redeemedRewards(redeemedRewards)
+        .build();
+  }
+
+  /** Get points expiring soon. */
+  @Transactional(readOnly = true)
+  public ExpiringPointsResponse getExpiringPoints(Long userId) {
+    LoyaltyAccount account = getOrCreateAccount(userId);
+    int currentBalance = account.getPointsBalance().intValue();
+
+    // Points typically expire after 12 months
+    // Get transactions from 10-12 months ago that haven't been used
+    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime expiryStart = now.minusMonths(12);
+    LocalDateTime expiryEnd = now.minusMonths(10);
+
+    // Get earn transactions that are about to expire
+    List<PointTransaction> expiringTransactions =
+        pointTransactionRepository.findExpiringTransactions(userId, expiryStart, expiryEnd);
+
+    int totalExpiringPoints = 0;
+    List<ExpiringPointsResponse.ExpiringBatch> expiringBatches = new ArrayList<>();
+
+    for (PointTransaction tx : expiringTransactions) {
+      if (tx.getPoints() > 0) {
+        LocalDateTime expiresAt = tx.getCreatedAt().plusMonths(12);
+        long daysUntil = ChronoUnit.DAYS.between(now, expiresAt);
+
+        if (daysUntil > 0 && daysUntil <= 60) {
+          totalExpiringPoints += tx.getPoints().intValue();
+          expiringBatches.add(
+              ExpiringPointsResponse.ExpiringBatch.builder()
+                  .points(tx.getPoints().intValue())
+                  .expiresAt(expiresAt)
+                  .daysUntilExpiration((int) daysUntil)
+                  .source(tx.getOrder() != null ? "Order #" + tx.getOrder().getId() : "Bonus")
+                  .earnedAt(tx.getCreatedAt())
+                  .build());
+        }
+      }
+    }
+
+    // Build recommended actions
+    List<ExpiringPointsResponse.RecommendedAction> recommendations = new ArrayList<>();
+    if (totalExpiringPoints > 0) {
+      recommendations.add(
+          ExpiringPointsResponse.RecommendedAction.builder()
+              .type("USE_DISCOUNT")
+              .description(
+                  "Sử dụng " + totalExpiringPoints + " điểm để giảm giá cho đơn hàng tiếp theo")
+              .pointsToUse(totalExpiringPoints)
+              .actionUrl("/orders/create")
+              .build());
+
+      if (totalExpiringPoints >= 1000) {
+        recommendations.add(
+            ExpiringPointsResponse.RecommendedAction.builder()
+                .type("REDEEM_REWARD")
+                .description("Đổi điểm lấy voucher giặt miễn phí")
+                .pointsToUse(1000)
+                .actionUrl("/loyalty/rewards")
+                .build());
+      }
+    }
+
+    return ExpiringPointsResponse.builder()
+        .totalExpiringPoints(totalExpiringPoints)
+        .currentBalance(currentBalance)
+        .expiringBatches(expiringBatches)
+        .recommendedActions(recommendations)
+        .build();
+  }
+
+  private String determineMembershipTier(Long totalPointsEarned) {
+    if (totalPointsEarned >= 50000) return "DIAMOND";
+    if (totalPointsEarned >= 20000) return "GOLD";
+    if (totalPointsEarned >= 5000) return "SILVER";
+    return "BRONZE";
+  }
+
+  private int calculatePointsToNextTier(Long totalPointsEarned, String currentTier) {
+    return switch (currentTier) {
+      case "BRONZE" -> 5000 - totalPointsEarned.intValue();
+      case "SILVER" -> 20000 - totalPointsEarned.intValue();
+      case "GOLD" -> 50000 - totalPointsEarned.intValue();
+      default -> 0;
+    };
+  }
+
+  private List<RewardsResponse.RewardItem> buildAvailableRewards(
+      int currentPoints, String membershipTier) {
+    List<RewardsResponse.RewardItem> rewards = new ArrayList<>();
+
+    // Discount rewards
+    rewards.add(
+        RewardsResponse.RewardItem.builder()
+            .id(1L)
+            .name("Giảm 10.000đ")
+            .description("Giảm 10.000đ cho đơn hàng tiếp theo")
+            .pointsRequired(100)
+            .type("DISCOUNT")
+            .value("10000")
+            .canRedeem(currentPoints >= 100)
+            .category("DISCOUNT")
+            .build());
+
+    rewards.add(
+        RewardsResponse.RewardItem.builder()
+            .id(2L)
+            .name("Giảm 50.000đ")
+            .description("Giảm 50.000đ cho đơn hàng tiếp theo")
+            .pointsRequired(500)
+            .type("DISCOUNT")
+            .value("50000")
+            .canRedeem(currentPoints >= 500)
+            .category("DISCOUNT")
+            .build());
+
+    rewards.add(
+        RewardsResponse.RewardItem.builder()
+            .id(3L)
+            .name("Giảm 100.000đ")
+            .description("Giảm 100.000đ cho đơn hàng tiếp theo")
+            .pointsRequired(1000)
+            .type("DISCOUNT")
+            .value("100000")
+            .canRedeem(currentPoints >= 1000)
+            .category("DISCOUNT")
+            .build());
+
+    // Free service rewards
+    rewards.add(
+        RewardsResponse.RewardItem.builder()
+            .id(4L)
+            .name("Giặt miễn phí 1kg")
+            .description("Miễn phí giặt 1kg cho đơn hàng tiếp theo")
+            .pointsRequired(200)
+            .type("FREE_SERVICE")
+            .value("1KG_WASH")
+            .canRedeem(currentPoints >= 200)
+            .category("FREE_SERVICE")
+            .build());
+
+    // VIP rewards for higher tiers
+    if ("GOLD".equals(membershipTier) || "DIAMOND".equals(membershipTier)) {
+      rewards.add(
+          RewardsResponse.RewardItem.builder()
+              .id(5L)
+              .name("Giặt VIP miễn phí")
+              .description("Miễn phí dịch vụ giặt VIP (bao gồm là ủi)")
+              .pointsRequired(2000)
+              .type("FREE_SERVICE")
+              .value("VIP_WASH")
+              .canRedeem(currentPoints >= 2000)
+              .minimumTier("GOLD")
+              .category("VIP")
+              .build());
+    }
+
+    return rewards;
   }
 
   /** Calculate potential points for an amount. */

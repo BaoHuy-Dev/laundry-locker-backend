@@ -11,6 +11,7 @@ import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeigh
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderStatusResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
+import com.huynqb.laundrylockerbackend.module.order.service.OrderRatingService;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderService;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
   private final OrderService orderService;
+  private final OrderRatingService orderRatingService;
   private final JwtTokenProvider jwtTokenProvider;
   private final ResponseHelper responseHelper;
 
@@ -221,6 +223,49 @@ public class OrderController {
     Long staffId = extractUserId(authHeader);
     OrderResponse response = orderService.markOrderReady(orderId, staffId);
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_READY"));
+  }
+
+  /** Rate an order. */
+  @Operation(summary = "Rate Order", description = "Rate a completed order")
+  @PostMapping(UriParamConstants.ORDER_RATE)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<
+          ApiResponse<
+              com.huynqb.laundrylockerbackend.module.order.dto.response.OrderRatingResponse>>
+      rateOrder(
+          @PathVariable Long orderId,
+          @Valid @RequestBody
+              com.huynqb.laundrylockerbackend.module.order.dto.request.OrderRatingRequest request,
+          @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    var response = orderRatingService.createRating(orderId, request, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_RATED"));
+  }
+
+  /** Get order rating. */
+  @Operation(summary = "Get Order Rating", description = "Get rating for an order")
+  @GetMapping(UriParamConstants.ORDER_RATING)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<
+          ApiResponse<
+              com.huynqb.laundrylockerbackend.module.order.dto.response.OrderRatingResponse>>
+      getOrderRating(@PathVariable Long orderId) {
+    var response = orderRatingService.getRating(orderId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_RATING_RETRIEVED"));
+  }
+
+  /** Get order timeline. */
+  @Operation(summary = "Get Order Timeline", description = "Get timeline of order status changes")
+  @GetMapping(UriParamConstants.ORDER_TIMELINE)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<
+          ApiResponse<
+              com.huynqb.laundrylockerbackend.module.order.dto.response.OrderTimelineResponse>>
+      getOrderTimeline(
+          @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    var response = orderRatingService.getOrderTimeline(orderId, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_TIMELINE_RETRIEVED"));
   }
 
   private Long extractUserId(String authHeader) {

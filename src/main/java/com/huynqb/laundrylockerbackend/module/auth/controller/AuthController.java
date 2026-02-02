@@ -9,9 +9,11 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.request.CompleteRegistrat
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegistrationRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ResetPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.AuthResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.EmailLoginResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.PhoneLoginResponse;
@@ -149,6 +151,28 @@ public class AuthController {
     authService.logout(accessToken, request);
 
     return ResponseEntity.ok(responseHelper.success(MessageConstants.AUTH_LOGOUT_SUCCESS));
+  }
+
+  // ===== Password Reset Endpoints =====
+
+  /** Request password reset - sends OTP to email */
+  @Operation(summary = "Forgot Password", description = "Request password reset OTP via email")
+  @PostMapping(UriParamConstants.FORGOT_PASSWORD)
+  public ResponseEntity<ApiResponse<Void>> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request) {
+
+    authService.sendPasswordResetOtp(request);
+    return ResponseEntity.ok(responseHelper.success(MessageConstants.AUTH_OTP_SENT));
+  }
+
+  /** Reset password with OTP verification */
+  @Operation(summary = "Reset Password", description = "Reset password using OTP verification")
+  @PostMapping(UriParamConstants.RESET_PASSWORD)
+  public ResponseEntity<ApiResponse<Void>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request) {
+
+    authService.resetPassword(request);
+    return ResponseEntity.ok(responseHelper.success("PASSWORD_RESET_SUCCESS"));
   }
 
   // ===== Helper Methods =====

@@ -4,10 +4,14 @@ import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
+import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.payment.dto.request.CreatePaymentRequest;
+import com.huynqb.laundrylockerbackend.module.payment.dto.request.RefundRequest;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentUrlResponse;
+import com.huynqb.laundrylockerbackend.module.payment.dto.response.RefundResponse;
 import com.huynqb.laundrylockerbackend.module.payment.service.PaymentService;
+import com.huynqb.laundrylockerbackend.module.payment.service.RefundService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +43,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
 
   private final PaymentService paymentService;
+  private final RefundService refundService;
+  private final JwtTokenProvider jwtTokenProvider;
   private final ResponseHelper responseHelper;
 
   /** Create online payment and get payment URL. */
@@ -113,6 +119,46 @@ public class PaymentController {
       @PathVariable Long orderId) {
     List<PaymentResponse> response = paymentService.getPaymentsByOrder(orderId);
     return ResponseEntity.ok(responseHelper.success(response, "PAYMENT_RETRIEVED"));
+  }
+
+  // ===== Refund Endpoints =====
+
+  /** Request a refund for a payment. */
+  @Operation(summary = "Request Refund", description = "Request a refund for a payment")
+  @PostMapping(UriParamConstants.PAYMENT_REFUND)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<RefundResponse>> requestRefund(
+      @PathVariable Long paymentId,
+      @Valid @RequestBody RefundRequest request,
+      @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    RefundResponse response = refundService.requestRefund(paymentId, request, userId);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(responseHelper.success(response, "REFUND_REQUESTED"));
+  }
+
+  /** Get refund status. */
+  @Operation(summary = "Get Refund Status", description = "Get refund details by ID")
+  @GetMapping(UriParamConstants.PAYMENT_REFUND_STATUS)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<RefundResponse>> getRefundStatus(@PathVariable Long refundId) {
+    RefundResponse response = refundService.getRefund(refundId);
+    return ResponseEntity.ok(responseHelper.success(response, "REFUND_RETRIEVED"));
+  }
+
+  /** Get refunds for an order. */
+  @Operation(summary = "Get Order Refunds", description = "Get all refunds for an order")
+  @GetMapping("/order/{orderId}/refunds")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<List<RefundResponse>>> getOrderRefunds(
+      @PathVariable Long orderId) {
+    List<RefundResponse> response = refundService.getRefundsByOrder(orderId);
+    return ResponseEntity.ok(responseHelper.success(response, "REFUNDS_RETRIEVED"));
+  }
+
+  private Long extractUserId(String authHeader) {
+    String token = authHeader.replace("Bearer ", "");
+    return jwtTokenProvider.getUserIdFromToken(token);
   }
 
   /**

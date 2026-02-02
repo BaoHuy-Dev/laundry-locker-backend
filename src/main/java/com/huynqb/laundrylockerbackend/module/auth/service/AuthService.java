@@ -9,9 +9,11 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.request.CompleteRegistrat
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegistrationRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ResetPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.AuthResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.EmailLoginResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.PhoneLoginResponse;
@@ -362,5 +364,72 @@ public class AuthService {
     Set<Role> roles = new HashSet<>();
     roleRepository.findByName(RoleName.USER).ifPresent(roles::add);
     return roles;
+  }
+
+  // ===== Password Reset Methods =====
+
+  /**
+   * Send password reset OTP to email.
+   *
+   * @param request Forgot password request
+   */
+  @Transactional
+  public void sendPasswordResetOtp(ForgotPasswordRequest request) {
+    log.info("Password reset requested for email: {}", request.getEmail());
+
+    // Check if user exists
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new AuthenticationException("E_AUTH_USER_NOT_FOUND"));
+
+    // Send OTP using email OTP service
+    EmailSendOtpRequest otpRequest = new EmailSendOtpRequest();
+    otpRequest.setEmail(request.getEmail());
+
+    boolean sent = emailOtpService.sendOtp(request.getEmail());
+    if (!sent) {
+      throw new AuthenticationException(AUTH_OTP_SEND_FAILED);
+    }
+
+    log.info("Password reset OTP sent to: {}", request.getEmail());
+  }
+
+  /**
+   * Reset password with OTP verification.
+   *
+   * @param request Reset password request
+   */
+  @Transactional
+  public void resetPassword(ResetPasswordRequest request) {
+    log.info("Password reset attempt for email: {}", request.getEmail());
+
+    // Verify OTP
+    boolean isValid = emailOtpService.verifyOtp(request.getEmail(), request.getOtp());
+    if (!isValid) {
+      throw new AuthenticationException("E_AUTH_OTP_INVALID");
+    }
+
+    // Find user
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new AuthenticationException("E_AUTH_USER_NOT_FOUND"));
+
+    // Validate password confirmation
+    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+      throw new AuthenticationException("Passwords do not match");
+    }
+
+    // Update password (should be encoded)
+    user.setPassword(
+        org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
+            request.getNewPassword(), org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
+    userRepository.save(user);
+
+    // Invalidate all existing tokens for the user
+    tokenService.deleteAllUserRefreshTokens(user.getId());
+
+    log.info("Password reset successful for user: {}", user.getId());
   }
 }

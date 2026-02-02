@@ -197,4 +197,77 @@ public class UriParamConstants {
   public static final String ADMIN_PARTNERS_APPROVE = "/{partnerId}/approve";
   public static final String ADMIN_PARTNERS_REJECT = "/{partnerId}/reject";
   public static final String ADMIN_PARTNERS_STORES = "/{partnerId}/stores";
+
+  // ===== Auth - Password Reset =====
+  public static final String FORGOT_PASSWORD = "/forgot-password";
+  public static final String RESET_PASSWORD = "/reset-password";
+
+  // ===== User Account Management =====
+  public static final String DELETE_ACCOUNT = "/account";
+  public static final String CHANGE_PHONE = "/phone";
+  public static final String VERIFY_PHONE_CHANGE = "/phone/verify";
+  public static final String CHANGE_EMAIL = "/email";
+  public static final String VERIFY_EMAIL_CHANGE = "/email/verify";
+
+  // ===== Order - Rating & Timeline =====
+  public static final String ORDER_RATE = "/{orderId}/rate";
+  public static final String ORDER_RATING = "/{orderId}/rating";
+  public static final String ORDER_TIMELINE = "/{orderId}/timeline";
+  public static final String ORDER_EXTEND_PICKUP = "/{orderId}/extend-pickup";
+  public static final String ORDER_REPROCESS = "/{orderId}/reprocess";
+  public static final String ORDER_DUPLICATE = "/{orderId}/duplicate";
+
+  // ===== Payment - Refund & History =====
+  public static final String PAYMENT_REFUND = "/{paymentId}/refund";
+  public static final String PAYMENT_REFUND_STATUS = "/refund/{refundId}";
+  public static final String MY_PAYMENTS = "/my-payments";
+  public static final String PAYMENT_RETRY = "/{paymentId}/retry";
+
+  // ===== Store - Nearby & Ratings =====
+  public static final String STORE_NEARBY = "/nearby";
+  public static final String STORE_RATINGS = "/{storeId}/ratings";
+  public static final String STORE_WORKING_HOURS = "/{storeId}/working-hours";
+
+  // ===== Locker - Nearby & Pricing =====
+  public static final String LOCKER_NEARBY = "/nearby";
+  public static final String LOCKER_PRICING = "/{lockerId}/pricing";
+
+  // ===== Service - Estimation & Popular =====
+  public static final String SERVICE_POPULAR = "/popular";
+  public static final String SERVICE_ESTIMATE = "/estimate";
+
+  // ===== Partner - Performance & Ratings =====
+  public static final String PARTNER_RATINGS = "/ratings";
+  public static final String PARTNER_RESPOND_RATING = "/ratings/{ratingId}/respond";
+  public static final String PARTNER_PERFORMANCE = "/performance";
+  public static final String PARTNER_ORDERS_EXPORT = "/orders/export";
+  public static final String PARTNER_NOTIFICATIONS = "/notifications";
+
+  // ===== Staff - Performance & Issues =====
+  public static final String STAFF_PERFORMANCE = "/performance";
+  public static final String STAFF_REPORT_ISSUE = "/issues";
+  public static final String STAFF_ORDER_HISTORY = "/order-history";
+  public static final String STAFF_ISSUES_BY_ID = "/issues/{issueId}";
+
+  // ===== IoT - Health & Config =====
+  public static final String IOT_HEALTH = "/{deviceId}/health";
+  public static final String IOT_CONFIG = "/{deviceId}/config";
+  public static final String IOT_ERRORS = "/errors";
+  public static final String IOT_DASHBOARD = "/dashboard";
+
+  // ===== Loyalty - Rewards & Expiring =====
+  public static final String LOYALTY_REWARDS = "/rewards";
+  public static final String LOYALTY_REDEEM_REWARD = "/rewards/{rewardId}/redeem";
+  public static final String LOYALTY_EXPIRING_POINTS = "/points/expiring";
+  public static final String LOYALTY_TRANSFER_POINTS = "/points/transfer";
+
+  // ===== Admin - System & Promotions =====
+  public static final String ROOT_URI_ADMIN_PROMOTIONS = "/api/admin/promotions";
+  public static final String ADMIN_SYSTEM_HEALTH = "/system/health";
+  public static final String ADMIN_AUDIT_LOGS = "/audit-logs";
+  public static final String ADMIN_EXPORT = "/export";
+  public static final String ADMIN_BROADCAST = "/broadcast";
+  public static final String ADMIN_IOT_DASHBOARD = "/iot/dashboard";
+  public static final String ADMIN_PROMOTION_BY_ID = "/{promotionId}";
+  public static final String ADMIN_PROMOTION_VALIDATE = "/validate/{code}";
 }

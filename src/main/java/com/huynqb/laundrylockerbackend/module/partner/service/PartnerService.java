@@ -141,7 +141,7 @@ public class PartnerService {
     Partner partner = getApprovedPartner(userId);
     User staffUser = findUserById(staffUserId);
 
-    assignStaffRole(staffUser);
+    // Staff is managed internally by Partner, no separate STAFF role needed
     partner.getStaff().add(staffUser);
     partnerRepository.save(partner);
 
@@ -626,18 +626,6 @@ public class PartnerService {
   private void validatePendingStatus(Partner partner) {
     if (partner.getStatus() != PartnerStatus.PENDING) {
       throw PartnerException.cannotModify();
-    }
-  }
-
-  private void assignStaffRole(User user) {
-    Role staffRole =
-        roleRepository
-            .findByName(RoleName.STAFF)
-            .orElseThrow(() -> new RuntimeException("STAFF role not found"));
-
-    if (!user.getRoles().contains(staffRole)) {
-      user.getRoles().add(staffRole);
-      userRepository.save(user);
     }
   }
 

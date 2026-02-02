@@ -7,9 +7,11 @@ import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemPointsRequest;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemStampRequest;
+import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.ExpiringPointsResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltyAccountResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.LoyaltySummaryResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.PointTransactionResponse;
+import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.RewardsResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampCardResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.response.StampTransactionResponse;
 import com.huynqb.laundrylockerbackend.module.loyalty.service.LoyaltyService;
@@ -119,5 +121,29 @@ public class LoyaltyController {
     Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);
     StampTransactionResponse result = loyaltyService.redeemStampReward(userId, request);
     return ResponseEntity.ok(responseHelper.success(result, "STAMP_REWARD_REDEEMED"));
+  }
+
+  // ===== Rewards =====
+
+  @Operation(
+      summary = "Get Available Rewards",
+      description = "Get list of rewards that can be redeemed with points")
+  @GetMapping(UriParamConstants.LOYALTY_REWARDS)
+  public ResponseEntity<ApiResponse<RewardsResponse>> getAvailableRewards(
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);
+    RewardsResponse rewards = loyaltyService.getAvailableRewards(userId);
+    return ResponseEntity.ok(responseHelper.success(rewards, "REWARDS_RETRIEVED"));
+  }
+
+  @Operation(
+      summary = "Get Expiring Points",
+      description = "Get points that will expire soon and recommendations")
+  @GetMapping(UriParamConstants.LOYALTY_EXPIRING_POINTS)
+  public ResponseEntity<ApiResponse<ExpiringPointsResponse>> getExpiringPoints(
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);
+    ExpiringPointsResponse expiringPoints = loyaltyService.getExpiringPoints(userId);
+    return ResponseEntity.ok(responseHelper.success(expiringPoints, "EXPIRING_POINTS_RETRIEVED"));
   }
 }

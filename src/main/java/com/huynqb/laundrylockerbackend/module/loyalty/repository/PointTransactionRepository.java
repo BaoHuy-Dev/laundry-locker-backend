@@ -32,4 +32,12 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
       @Param("userId") Long userId, @Param("type") PointTransactionType type);
 
   List<PointTransaction> findByOrderId(Long orderId);
+
+  @Query(
+      "SELECT pt FROM PointTransaction pt WHERE pt.user.id = :userId AND pt.type = 'EARN' "
+          + "AND pt.createdAt BETWEEN :startDate AND :endDate ORDER BY pt.createdAt ASC")
+  List<PointTransaction> findExpiringTransactions(
+      @Param("userId") Long userId,
+      @Param("startDate") LocalDateTime startDate,
+      @Param("endDate") LocalDateTime endDate);
 }

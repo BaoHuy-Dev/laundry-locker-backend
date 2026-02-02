@@ -29,12 +29,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** REST controller for staff-specific operations. */
-@Tag(name = TagConstants.ROOT_TAG_STAFF, description = "Staff Operations APIs")
+/** REST controller for staff-specific operations. Now handled by PARTNER role. */
+@Tag(name = TagConstants.ROOT_TAG_STAFF, description = "Staff Operations APIs (Managed by Partner)")
 @RequestMapping(UriParamConstants.ROOT_URI_STAFF)
 @RestController
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+@PreAuthorize("hasAnyRole('ADMIN', 'PARTNER')")
 public class StaffController {
 
   private final StaffService staffService;
