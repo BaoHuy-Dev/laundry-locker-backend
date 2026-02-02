@@ -12,6 +12,12 @@ public interface LaundryServiceMapper {
 
   @Mapping(target = "storeId", source = "store.id")
   @Mapping(target = "storeName", source = "store.name")
+  @Mapping(target = "category", source = "category")
+  @Mapping(target = "serviceType", source = "serviceType")
+  @Mapping(target = "maxPrice", source = "maxPrice")
+  @Mapping(target = "isAddon", source = "isAddon")
+  @Mapping(target = "isMonthlyPackage", source = "isMonthlyPackage")
+  @Mapping(target = "estimatedHours", source = "estimatedHours")
   ServiceResponse toResponse(LaundryService service);
 
   List<ServiceResponse> toResponseList(List<LaundryService> services);

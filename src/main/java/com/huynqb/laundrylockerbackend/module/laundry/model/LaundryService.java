@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.laundry.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
+import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceCategory;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceStatus;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceType;
 import com.huynqb.laundrylockerbackend.module.store.model.Store;
@@ -61,7 +62,12 @@ public class LaundryService extends BaseModel {
   @Column(nullable = false)
   private ServiceStatus status;
 
-  /** Type of service for categorization. */
+  /** Category: STORAGE (gửi đồ) or LAUNDRY (giặt đồ). */
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ServiceCategory category;
+
+  /** Type of service for sub-categorization. */
   @Enumerated(EnumType.STRING)
   private ServiceType serviceType;
 
