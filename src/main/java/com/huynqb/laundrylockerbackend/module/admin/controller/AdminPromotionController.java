@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
 /** REST controller for managing promotions (Admin only). */
 @Tag(name = "Admin - Promotions", description = "Promotion management APIs")
 @RequestMapping(UriParamConstants.ROOT_URI_ADMIN_PROMOTIONS)
@@ -114,7 +113,7 @@ public class AdminPromotionController {
   @Operation(summary = "Search Promotions", description = "Search promotions by keyword")
   @GetMapping("/search")
   public ResponseEntity<ApiResponse<Page<PromotionResponse>>> searchPromotions(
-          @RequestParam String keyword, Pageable pageable) {
+      @RequestParam String keyword, Pageable pageable) {
     Page<PromotionResponse> promotions = promotionService.searchPromotions(keyword, pageable);
     return ResponseEntity.ok(responseHelper.success(promotions, "PROMOTIONS_RETRIEVED"));
   }

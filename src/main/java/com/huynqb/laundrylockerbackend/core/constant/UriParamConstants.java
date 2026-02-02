@@ -62,6 +62,7 @@ public class UriParamConstants {
 
   // ===== Order Endpoints =====
   public static final String BY_ORDER_ID = "/{orderId}";
+  public static final String BY_ORDER_CODE = "/code/{orderCode}";
   public static final String BY_PIN_CODE = "/pin/{pinCode}";
   public static final String ORDER_STATUS = "/{orderId}/status";
   public static final String CHECKOUT = "/{orderId}/checkout";

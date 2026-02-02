@@ -26,6 +26,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
   Optional<Order> findByPinCode(String pinCode);
 
+  Optional<Order> findByOrderCode(String orderCode);
+
   Page<Order> findByDeleteFlagFalse(Pageable pageable);
 
   // Customer: Get my orders with pagination

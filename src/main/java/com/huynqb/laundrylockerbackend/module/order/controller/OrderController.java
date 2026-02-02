@@ -91,6 +91,15 @@ public class OrderController {
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_STATUS_RETRIEVED"));
   }
 
+  /** Get order by order code (e.g., ORD-20260202-ABC123). */
+  @Operation(summary = "Get Order By Code", description = "Retrieve order details by order code")
+  @GetMapping(UriParamConstants.BY_ORDER_CODE)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderResponse>> getOrderByCode(@PathVariable String orderCode) {
+    OrderResponse response = orderService.getOrderByCode(orderCode);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_RETRIEVED"));
+  }
+
   /** Get order by PIN code. */
   @Operation(summary = "Get Order By PIN", description = "Retrieve order details by PIN code")
   @GetMapping(UriParamConstants.BY_PIN_CODE)

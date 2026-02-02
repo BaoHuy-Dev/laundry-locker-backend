@@ -363,6 +363,23 @@ public class OrderService {
     return orderMapper.toResponse(order);
   }
 
+  /**
+   * Get order by order code (e.g., ORD-20260202-ABC123).
+   *
+   * @param orderCode The unique order code
+   * @return OrderResponse
+   * @throws OrderException if order not found
+   */
+  @Transactional(readOnly = true)
+  public OrderResponse getOrderByCode(String orderCode) {
+    log.info("Getting order by code: {}", orderCode);
+    Order order =
+        orderRepository
+            .findByOrderCode(orderCode)
+            .orElseThrow(() -> new OrderException("E_ORDER001"));
+    return orderMapper.toResponse(order);
+  }
+
   // ===== Get My Orders - Customer's own orders =====
 
   @Transactional(readOnly = true)
@@ -456,10 +473,11 @@ public class OrderService {
     BigDecimal rawFee = BigDecimal.valueOf(overtimeHours * overtimeFeePerHour);
 
     // Calculate max fee based on percentage of order total
-    BigDecimal totalPrice =
-        order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+    BigDecimal totalPrice = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
     BigDecimal percentMaxFee =
-        totalPrice.multiply(BigDecimal.valueOf(maxOvertimePercent)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        totalPrice
+            .multiply(BigDecimal.valueOf(maxOvertimePercent))
+            .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
 
     // Cap is the minimum of: absolute max fee OR percentage max fee
     BigDecimal capFee = percentMaxFee.min(BigDecimal.valueOf(maxOvertimeFee));
@@ -596,6 +614,7 @@ public class OrderService {
             .sender(sender)
             .sendBox(sendBox)
             .locker(locker)
+            .orderCode(generateOrderCode())
             .pinCode(generatePinCode())
             .pinCodeIssuedAt(LocalDateTime.now())
             .customerNote(request.getCustomerNote())
@@ -683,6 +702,24 @@ public class OrderService {
 
   private String generatePinCode() {
     return String.format("%0" + PIN_CODE_LENGTH + "d", RANDOM.nextInt(PIN_CODE_BOUND));
+  }
+
+  /** Generate unique order code with format: ORD-YYYYMMDD-XXXXXX Example: ORD-20260202-A1B2C3 */
+  private String generateOrderCode() {
+    String datePart =
+        java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+    String randomPart = generateRandomAlphanumeric(6);
+    return "ORD-" + datePart + "-" + randomPart;
+  }
+
+  /** Generate random alphanumeric string (uppercase letters and digits). */
+  private String generateRandomAlphanumeric(int length) {
+    String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    StringBuilder sb = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+      sb.append(chars.charAt(RANDOM.nextInt(chars.length())));
+    }
+    return sb.toString();
   }
 
   // ===== Promotion Methods =====
@@ -848,7 +885,8 @@ public class OrderService {
     }
 
     // Reset previous discount if any
-    if (order.getOriginalPrice() != null && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
+    if (order.getOriginalPrice() != null
+        && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
       order.setTotalPrice(order.getOriginalPrice());
     }
     order.setDiscount(BigDecimal.ZERO);
@@ -884,7 +922,8 @@ public class OrderService {
     }
 
     // Restore original price
-    if (order.getOriginalPrice() != null && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
+    if (order.getOriginalPrice() != null
+        && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
       order.setTotalPrice(order.getOriginalPrice());
     }
 

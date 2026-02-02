@@ -48,6 +48,10 @@ public class Order extends BaseModel {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  /** Unique order code for display and reference (e.g., ORD-20260202-ABC123). */
+  @Column(name = "order_code", unique = true, nullable = false, length = 30)
+  private String orderCode;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private OrderType type;

@@ -14,16 +14,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 /** MapStruct mapper for Order entities to DTOs. Follows DRY principle by centralizing mapping. */
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
 
+  @Mapping(target = "orderCode", source = "orderCode")
   @Mapping(target = "senderId", source = "sender.id")
   @Mapping(target = "senderName", source = "sender.name")
   @Mapping(target = "senderPhone", source = "sender.phoneNumber")
@@ -54,7 +53,10 @@ public interface OrderMapper {
   @Mapping(target = "nextActionMessage", source = "order", qualifiedByName = "getNextActionMessage")
   // ===== PROMOTION MAPPINGS =====
   @Mapping(target = "promotionCode", source = "promotionCode")
-  @Mapping(target = "appliedPromotionCodes", source = "order", qualifiedByName = "mapAppliedPromotionCodes")
+  @Mapping(
+      target = "appliedPromotionCodes",
+      source = "order",
+      qualifiedByName = "mapAppliedPromotionCodes")
   @Mapping(target = "originalPrice", source = "originalPrice")
   @Mapping(target = "promotionDiscount", source = "discount")
   OrderResponse toResponse(Order order);
@@ -162,16 +164,14 @@ public interface OrderMapper {
   @Named("getNextAction")
   default String getNextAction(Order order) {
     return switch (order.getStatus()) {
-      case INITIALIZED -> order.getServiceCategory() == ServiceCategory.STORAGE
-          ? "PAY_AND_DROP"
-          : "DROP_ITEMS";
+      case INITIALIZED ->
+          order.getServiceCategory() == ServiceCategory.STORAGE ? "PAY_AND_DROP" : "DROP_ITEMS";
       case WAITING -> "WAIT_FOR_STAFF";
       case COLLECTED -> "PROCESSING";
       case PROCESSING -> "WAIT_FOR_READY";
       case READY -> "WAIT_FOR_RETURN";
-      case RETURNED -> order.getServiceCategory() == ServiceCategory.STORAGE
-          ? "PICKUP"
-          : "PAY_AND_PICKUP";
+      case RETURNED ->
+          order.getServiceCategory() == ServiceCategory.STORAGE ? "PICKUP" : "PAY_AND_PICKUP";
       case COMPLETED -> "DONE";
       case CANCELED -> "CANCELED";
       default -> "UNKNOWN";
@@ -181,16 +181,18 @@ public interface OrderMapper {
   @Named("getNextActionMessage")
   default String getNextActionMessage(Order order) {
     return switch (order.getStatus()) {
-      case INITIALIZED -> order.getServiceCategory() == ServiceCategory.STORAGE
-          ? "Vui lòng thanh toán và đặt đồ vào locker"
-          : "Vui lòng đặt đồ vào locker";
+      case INITIALIZED ->
+          order.getServiceCategory() == ServiceCategory.STORAGE
+              ? "Vui lòng thanh toán và đặt đồ vào locker"
+              : "Vui lòng đặt đồ vào locker";
       case WAITING -> "Đang chờ nhân viên lấy đồ";
       case COLLECTED -> "Đồ đã được lấy, đang chuẩn bị xử lý";
       case PROCESSING -> "Đồ đang được giặt";
       case READY -> "Đồ đã giặt xong, đang chờ trả về locker";
-      case RETURNED -> order.getServiceCategory() == ServiceCategory.STORAGE
-          ? "Đồ đã được trả, vui lòng đến lấy"
-          : "Đồ đã được trả, vui lòng thanh toán và lấy đồ";
+      case RETURNED ->
+          order.getServiceCategory() == ServiceCategory.STORAGE
+              ? "Đồ đã được trả, vui lòng đến lấy"
+              : "Đồ đã được trả, vui lòng thanh toán và lấy đồ";
       case COMPLETED -> "Đơn hàng hoàn tất";
       case CANCELED -> "Đơn hàng đã bị hủy";
       default -> "";

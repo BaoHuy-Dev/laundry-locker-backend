@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 public class OrderResponse {
 
   private Long id;
+  private String orderCode;
   private OrderType type;
   private OrderStatus status;
   private String pinCode;
