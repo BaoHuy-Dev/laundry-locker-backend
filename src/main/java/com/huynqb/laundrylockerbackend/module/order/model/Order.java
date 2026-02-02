@@ -105,6 +105,18 @@ public class Order extends BaseModel {
 
   private LocalDateTime completedAt;
 
+  /** Timestamp when staff returned items to locker (status changed to RETURNED). */
+  private LocalDateTime returnedAt;
+
+  /** Deadline for customer pickup (returnedAt + pickup hours limit). */
+  private LocalDateTime pickupDeadline;
+
+  /** Phone number of receiver (if different from sender). */
+  private String receiverPhone;
+
+  /** Name of receiver (if different from sender). */
+  private String receiverName;
+
   // Locker and Staff
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "locker_id", nullable = false)
@@ -159,6 +171,24 @@ public class Order extends BaseModel {
   private Integer cancelReason;
 
   private String deliveryAddress;
+
+  // ===== PROMOTION FIELDS =====
+
+  /** Applied promotion code. */
+  private String promotionCode;
+
+  /** Applied promotion codes (comma-separated for multiple). */
+  private String appliedPromotionCodes;
+
+  /** Original price before discount. */
+  @Builder.Default
+  @Column(precision = 12, scale = 2)
+  private BigDecimal originalPrice = BigDecimal.ZERO;
+
+  /** Service category: STORAGE or LAUNDRY. */
+  @Enumerated(EnumType.STRING)
+  @Column(length = 20)
+  private com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceCategory serviceCategory;
 
   // Order details
   @Builder.Default

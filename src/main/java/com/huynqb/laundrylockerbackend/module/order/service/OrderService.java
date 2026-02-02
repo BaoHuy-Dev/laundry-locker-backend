@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.order.service;
 
+import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
 import com.huynqb.laundrylockerbackend.module.laundry.repository.LaundryServiceRepository;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
@@ -28,12 +30,17 @@ import com.huynqb.laundrylockerbackend.module.payment.repository.PaymentReposito
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -54,6 +61,7 @@ public class OrderService {
   private final LaundryServiceRepository laundryServiceRepository;
   private final PaymentRepository paymentRepository;
   private final UserRepository userRepository;
+  private final PromotionRepository promotionRepository;
   private final OrderMapper orderMapper;
   private final PaymentMapper paymentMapper;
   private final NotificationService notificationService;
@@ -61,6 +69,19 @@ public class OrderService {
   private static final SecureRandom RANDOM = new SecureRandom();
   private static final int PIN_CODE_LENGTH = 6;
   private static final int PIN_CODE_BOUND = 1000000;
+
+  // ===== Pickup Overtime Configuration =====
+  @Value("${app.order.pickup-hours-limit:24}")
+  private int pickupHoursLimit;
+
+  @Value("${app.order.pickup-overtime-fee-per-hour:500}")
+  private int overtimeFeePerHour;
+
+  @Value("${app.order.pickup-max-overtime-fee:50000}")
+  private int maxOvertimeFee;
+
+  @Value("${app.order.pickup-max-overtime-percent:50}")
+  private int maxOvertimePercent;
 
   // Valid statuses for checkout (OCP - extend by adding to list)
   private static final List<OrderStatus> CHECKOUT_VALID_STATUSES =
@@ -82,6 +103,9 @@ public class OrderService {
 
     Order order = buildOrder(request, sender, locker, sendBox);
     addOrderDetails(order, request.getItems());
+
+    // Apply promotion if provided
+    applyPromotionToOrder(order, request.getPromotionCode(), request.getPromotionCodes());
 
     sendBox.setStatus(BoxStatus.OCCUPIED);
     boxRepository.save(sendBox);
@@ -198,17 +222,26 @@ public class OrderService {
 
     OrderStatus oldStatus = order.getStatus();
 
+    LocalDateTime now = LocalDateTime.now();
     order.setStatus(OrderStatus.RETURNED);
     order.setReceiveBox(receiveBox);
     order.setStaff(staff);
     order.setPinCode(generatePinCode());
-    order.setPinCodeIssuedAt(LocalDateTime.now());
+    order.setPinCodeIssuedAt(now);
+
+    // Set returnedAt and pickupDeadline for overtime calculation
+    order.setReturnedAt(now);
+    order.setPickupDeadline(now.plusHours(pickupHoursLimit));
 
     receiveBox.setStatus(BoxStatus.OCCUPIED);
     boxRepository.save(receiveBox);
 
     Order savedOrder = orderRepository.save(order);
-    log.info("Order {} returned to box {}", orderId, boxId);
+    log.info(
+        "Order {} returned to box {}. Pickup deadline: {}",
+        orderId,
+        boxId,
+        order.getPickupDeadline());
 
     // Send notification
     notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.RETURNED);
@@ -363,6 +396,21 @@ public class OrderService {
 
     OrderStatus oldStatus = order.getStatus();
 
+    // Calculate overtime fee if customer picks up late
+    BigDecimal overtimeFee = calculatePickupOvertimeFee(order);
+    if (overtimeFee.compareTo(BigDecimal.ZERO) > 0) {
+      log.info("Order {} has overtime fee: {}", orderId, overtimeFee);
+      // Add overtime fee to extra fee
+      BigDecimal currentExtraFee =
+          order.getExtraFee() != null ? order.getExtraFee() : BigDecimal.ZERO;
+      order.setExtraFee(currentExtraFee.add(overtimeFee));
+
+      // Recalculate total price
+      BigDecimal currentTotal =
+          order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+      order.setTotalPrice(currentTotal.add(overtimeFee));
+    }
+
     order.setStatus(OrderStatus.COMPLETED);
     order.setCompletedAt(LocalDateTime.now());
     order.setPinCode(null); // Clear PIN after pickup
@@ -377,6 +425,58 @@ public class OrderService {
     notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.COMPLETED);
 
     return orderMapper.toResponse(savedOrder);
+  }
+
+  // ===== Calculate Pickup Overtime Fee =====
+
+  /**
+   * Tính phí phạt khi khách hàng lấy đồ trễ.
+   *
+   * <p>Logic: - Nếu pickupDeadline = null → không có phí phạt - Nếu now <= pickupDeadline → không
+   * có phí phạt - overtimeHours = số giờ vượt quá deadline - overtimeFee = overtimeHours ×
+   * overtimeFeePerHour - Cap by max(maxOvertimeFee, totalPrice × maxOvertimePercent / 100)
+   */
+  private BigDecimal calculatePickupOvertimeFee(Order order) {
+    if (order.getPickupDeadline() == null) {
+      return BigDecimal.ZERO;
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    if (!now.isAfter(order.getPickupDeadline())) {
+      return BigDecimal.ZERO;
+    }
+
+    // Calculate overtime hours
+    long overtimeHours = ChronoUnit.HOURS.between(order.getPickupDeadline(), now);
+    if (overtimeHours <= 0) {
+      return BigDecimal.ZERO;
+    }
+
+    // Calculate raw overtime fee
+    BigDecimal rawFee = BigDecimal.valueOf(overtimeHours * overtimeFeePerHour);
+
+    // Calculate max fee based on percentage of order total
+    BigDecimal totalPrice =
+        order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+    BigDecimal percentMaxFee =
+        totalPrice.multiply(BigDecimal.valueOf(maxOvertimePercent)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+
+    // Cap is the minimum of: absolute max fee OR percentage max fee
+    BigDecimal capFee = percentMaxFee.min(BigDecimal.valueOf(maxOvertimeFee));
+
+    // Apply cap
+    BigDecimal finalFee = rawFee.min(capFee);
+
+    log.info(
+        "Overtime calculation for order {}: hours={}, rawFee={}, percentMax={}, capFee={}, finalFee={}",
+        order.getId(),
+        overtimeHours,
+        rawFee,
+        percentMaxFee,
+        capFee,
+        finalFee);
+
+    return finalFee;
   }
 
   // ===== Confirm Order - Customer confirms items placed =====
@@ -489,17 +589,32 @@ public class OrderService {
   }
 
   private Order buildOrder(CreateOrderRequest request, User sender, Locker locker, Box sendBox) {
-    return Order.builder()
-        .type(request.getType())
-        .status(OrderStatus.INITIALIZED)
-        .sender(sender)
-        .sendBox(sendBox)
-        .locker(locker)
-        .pinCode(generatePinCode())
-        .pinCodeIssuedAt(LocalDateTime.now())
-        .customerNote(request.getCustomerNote())
-        .deliveryAddress(request.getDeliveryAddress())
-        .build();
+    Order.OrderBuilder builder =
+        Order.builder()
+            .type(request.getType())
+            .status(OrderStatus.INITIALIZED)
+            .sender(sender)
+            .sendBox(sendBox)
+            .locker(locker)
+            .pinCode(generatePinCode())
+            .pinCodeIssuedAt(LocalDateTime.now())
+            .customerNote(request.getCustomerNote())
+            .deliveryAddress(request.getDeliveryAddress())
+            // ===== NEW: Service Category =====
+            .serviceCategory(request.getServiceCategory())
+            // ===== NEW: Receiver Info =====
+            .receiverPhone(request.getReceiverPhone())
+            .receiverName(request.getReceiverName())
+            // ===== NEW: Intended Receive Time =====
+            .intendedReceiveAt(request.getIntendedReceiveAt());
+
+    // Set receiver if receiverId is provided
+    if (request.getReceiverId() != null) {
+      User receiver = findUserById(request.getReceiverId());
+      builder.receiver(receiver);
+    }
+
+    return builder.build();
   }
 
   private void addOrderDetails(Order order, List<OrderItemRequest> items) {
@@ -568,5 +683,217 @@ public class OrderService {
 
   private String generatePinCode() {
     return String.format("%0" + PIN_CODE_LENGTH + "d", RANDOM.nextInt(PIN_CODE_BOUND));
+  }
+
+  // ===== Promotion Methods =====
+
+  /**
+   * Apply promotion to order. Validates and calculates discount.
+   *
+   * @param order The order to apply promotion to
+   * @param promotionCode Single promotion code
+   * @param promotionCodes List of promotion codes (for stackable)
+   */
+  private void applyPromotionToOrder(
+      Order order, String promotionCode, List<String> promotionCodes) {
+    List<String> codesToApply = new ArrayList<>();
+
+    // Collect codes to apply
+    if (promotionCode != null && !promotionCode.isBlank()) {
+      codesToApply.add(promotionCode.toUpperCase());
+    }
+    if (promotionCodes != null && !promotionCodes.isEmpty()) {
+      promotionCodes.stream()
+          .filter(c -> c != null && !c.isBlank())
+          .map(String::toUpperCase)
+          .forEach(codesToApply::add);
+    }
+
+    if (codesToApply.isEmpty()) {
+      return;
+    }
+
+    BigDecimal orderTotal = order.getTotalPrice();
+    BigDecimal totalDiscount = BigDecimal.ZERO;
+    List<String> appliedCodes = new ArrayList<>();
+
+    for (String code : codesToApply) {
+      Optional<Promotion> optPromotion = promotionRepository.findByCode(code);
+
+      if (optPromotion.isEmpty()) {
+        log.warn("Promotion code not found: {}", code);
+        continue;
+      }
+
+      Promotion promotion = optPromotion.get();
+
+      // Validate promotion is active
+      if (!promotion.isCurrentlyActive()) {
+        log.warn("Promotion {} is not active: {}", code, promotion.getStatus());
+        continue;
+      }
+
+      // Validate minimum order amount
+      if (promotion.getMinOrderAmount() != null
+          && orderTotal.compareTo(promotion.getMinOrderAmount()) < 0) {
+        log.warn(
+            "Order total {} is less than minimum required {} for promotion {}",
+            orderTotal,
+            promotion.getMinOrderAmount(),
+            code);
+        continue;
+      }
+
+      // Check if stackable (only first code or stackable codes)
+      if (!appliedCodes.isEmpty() && !promotion.getStackable()) {
+        log.warn("Promotion {} is not stackable, skipping", code);
+        continue;
+      }
+
+      // Calculate discount
+      BigDecimal discount = calculatePromotionDiscount(promotion, orderTotal);
+      totalDiscount = totalDiscount.add(discount);
+      appliedCodes.add(code);
+
+      log.info("Applied promotion {}: discount = {}", code, discount);
+
+      // Increment usage count
+      promotionRepository.incrementUsageCount(promotion.getId());
+    }
+
+    if (!appliedCodes.isEmpty()) {
+      // Save original price before discount
+      order.setOriginalPrice(orderTotal);
+
+      // Set promotion codes
+      order.setPromotionCode(appliedCodes.get(0));
+      order.setAppliedPromotionCodes(String.join(",", appliedCodes));
+
+      // Apply discount
+      order.setDiscount(totalDiscount);
+      order.setTotalPrice(orderTotal.subtract(totalDiscount).max(BigDecimal.ZERO));
+
+      log.info(
+          "Order total updated: original={}, discount={}, final={}",
+          orderTotal,
+          totalDiscount,
+          order.getTotalPrice());
+    }
+  }
+
+  /**
+   * Calculate discount amount for a promotion.
+   *
+   * @param promotion The promotion to calculate
+   * @param orderTotal The order total before discount
+   * @return The calculated discount amount
+   */
+  private BigDecimal calculatePromotionDiscount(Promotion promotion, BigDecimal orderTotal) {
+    BigDecimal discount;
+
+    switch (promotion.getDiscountType()) {
+      case PERCENTAGE:
+        // Calculate percentage discount
+        discount =
+            orderTotal
+                .multiply(promotion.getDiscountValue())
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+
+        // Apply max discount cap if exists
+        if (promotion.getMaxDiscountAmount() != null
+            && discount.compareTo(promotion.getMaxDiscountAmount()) > 0) {
+          discount = promotion.getMaxDiscountAmount();
+        }
+        break;
+
+      case FIXED_AMOUNT:
+        // Fixed amount discount
+        discount = promotion.getDiscountValue();
+        break;
+
+      case FREE_SERVICE:
+        // Free service - use the service price as discount
+        // TODO: Implement service-specific free discount
+        discount = BigDecimal.ZERO;
+        break;
+
+      default:
+        discount = BigDecimal.ZERO;
+    }
+
+    // Ensure discount doesn't exceed order total
+    return discount.min(orderTotal);
+  }
+
+  // ===== Apply Promotion to Existing Order =====
+
+  /**
+   * Apply promotion code to an existing order.
+   *
+   * @param orderId The order ID
+   * @param promotionCode The promotion code to apply
+   * @return Updated order response
+   */
+  @Transactional
+  public OrderResponse applyPromotionCode(Long orderId, String promotionCode) {
+    log.info("Applying promotion {} to order {}", promotionCode, orderId);
+
+    Order order = findOrderById(orderId);
+
+    // Only allow applying promotion before payment
+    if (order.getStatus() != OrderStatus.INITIALIZED
+        && order.getStatus() != OrderStatus.WAITING
+        && order.getStatus() != OrderStatus.RETURNED) {
+      throw new OrderException("E_ORDER011"); // Cannot apply promotion at this stage
+    }
+
+    // Reset previous discount if any
+    if (order.getOriginalPrice() != null && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
+      order.setTotalPrice(order.getOriginalPrice());
+    }
+    order.setDiscount(BigDecimal.ZERO);
+    order.setPromotionCode(null);
+    order.setAppliedPromotionCodes(null);
+
+    // Apply new promotion
+    applyPromotionToOrder(order, promotionCode, null);
+
+    Order savedOrder = orderRepository.save(order);
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  // ===== Remove Promotion from Order =====
+
+  /**
+   * Remove promotion from an order.
+   *
+   * @param orderId The order ID
+   * @return Updated order response
+   */
+  @Transactional
+  public OrderResponse removePromotion(Long orderId) {
+    log.info("Removing promotion from order {}", orderId);
+
+    Order order = findOrderById(orderId);
+
+    // Only allow removing promotion before payment
+    if (order.getStatus() != OrderStatus.INITIALIZED
+        && order.getStatus() != OrderStatus.WAITING
+        && order.getStatus() != OrderStatus.RETURNED) {
+      throw new OrderException("E_ORDER012"); // Cannot remove promotion at this stage
+    }
+
+    // Restore original price
+    if (order.getOriginalPrice() != null && order.getOriginalPrice().compareTo(BigDecimal.ZERO) > 0) {
+      order.setTotalPrice(order.getOriginalPrice());
+    }
+
+    order.setDiscount(BigDecimal.ZERO);
+    order.setPromotionCode(null);
+    order.setAppliedPromotionCodes(null);
+    order.setOriginalPrice(null);
+
+    Order savedOrder = orderRepository.save(order);
+    return orderMapper.toResponse(savedOrder);
   }
 }
