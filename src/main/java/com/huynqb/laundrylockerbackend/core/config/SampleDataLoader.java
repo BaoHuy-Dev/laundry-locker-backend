@@ -6,6 +6,7 @@ import com.huynqb.laundrylockerbackend.module.admin.entity.PromotionUsage;
 import com.huynqb.laundrylockerbackend.module.admin.repository.AuditLogRepository;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionUsageRepository;
+import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceCategory;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceStatus;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceType;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
@@ -131,6 +132,9 @@ public class SampleDataLoader {
   private List<Order> allOrders;
   private List<Payment> allPayments;
   private List<Promotion> allPromotions;
+
+  // Counter for generating unique order codes
+  private int orderCodeCounter = 0;
 
   @Bean
   @Profile({"dev", "docker"})
@@ -890,6 +894,7 @@ public class SampleDataLoader {
             null,
             "lần",
             ServiceType.STANDARD_DROPOFF,
+            ServiceCategory.STORAGE,
             false,
             false,
             0,
@@ -902,6 +907,7 @@ public class SampleDataLoader {
             null,
             "đêm",
             ServiceType.OVERNIGHT,
+            ServiceCategory.STORAGE,
             true,
             false,
             0,
@@ -914,6 +920,7 @@ public class SampleDataLoader {
             null,
             "lần",
             ServiceType.EXPRESS_2H,
+            ServiceCategory.STORAGE,
             false,
             false,
             2,
@@ -928,6 +935,7 @@ public class SampleDataLoader {
             15000,
             "kg",
             ServiceType.LAUNDRY,
+            ServiceCategory.LAUNDRY,
             false,
             false,
             24,
@@ -940,6 +948,7 @@ public class SampleDataLoader {
             35000,
             "món",
             ServiceType.LAUNDRY,
+            ServiceCategory.LAUNDRY,
             false,
             false,
             48,
@@ -952,6 +961,7 @@ public class SampleDataLoader {
             50000,
             "món",
             ServiceType.LAUNDRY,
+            ServiceCategory.LAUNDRY,
             false,
             false,
             48,
@@ -964,6 +974,7 @@ public class SampleDataLoader {
             80000,
             "đôi/cái",
             ServiceType.LAUNDRY,
+            ServiceCategory.LAUNDRY,
             false,
             false,
             72,
@@ -976,12 +987,13 @@ public class SampleDataLoader {
             12000,
             "món",
             ServiceType.LAUNDRY,
+            ServiceCategory.LAUNDRY,
             false,
             false,
             4,
             mainStore));
 
-    // Monthly packages
+    // Monthly packages - STORAGE category (fixed monthly fee)
     services.add(
         saveService(
             "Gói tháng Sinh viên",
@@ -990,6 +1002,7 @@ public class SampleDataLoader {
             null,
             "tháng",
             ServiceType.MONTHLY_STUDENT,
+            ServiceCategory.STORAGE,
             false,
             true,
             0,
@@ -1002,6 +1015,7 @@ public class SampleDataLoader {
             null,
             "tháng",
             ServiceType.MONTHLY_SHIPPER,
+            ServiceCategory.STORAGE,
             false,
             true,
             0,
@@ -1017,6 +1031,7 @@ public class SampleDataLoader {
       Integer maxPrice,
       String unit,
       ServiceType type,
+      ServiceCategory category,
       boolean isAddon,
       boolean isMonthly,
       int hours,
@@ -1029,6 +1044,7 @@ public class SampleDataLoader {
             .maxPrice(maxPrice != null ? new BigDecimal(maxPrice) : null)
             .unit(unit)
             .serviceType(type)
+            .category(category)
             .status(ServiceStatus.ACTIVE)
             .isAddon(isAddon)
             .isMonthlyPackage(isMonthly)
@@ -1484,6 +1500,9 @@ public class SampleDataLoader {
       receiveBoxes.add(receiveBox);
     }
 
+    // Generate order code
+    String orderCode = generateOrderCode();
+
     Order order =
         orderRepository.save(
             Order.builder()
@@ -1495,6 +1514,7 @@ public class SampleDataLoader {
                 .sendBoxes(sendBoxes)
                 .receiveBoxes(receiveBoxes)
                 .status(status)
+                .orderCode(orderCode)
                 .pinCode(pin)
                 .pinCodeIssuedAt(pin != null ? LocalDateTime.now() : null)
                 .actualWeight(weight != null ? new BigDecimal(weight) : null)
@@ -1523,6 +1543,17 @@ public class SampleDataLoader {
     }
 
     return order;
+  }
+
+  /**
+   * Generates a unique order code for sample data. Format: ORD-YYYYMMDD-XXXXXX (e.g.,
+   * ORD-20260203-000001)
+   */
+  private String generateOrderCode() {
+    orderCodeCounter++;
+    String datePart =
+        java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+    return String.format("ORD-%s-%06d", datePart, orderCodeCounter);
   }
 
   // ==================== PAYMENTS ====================

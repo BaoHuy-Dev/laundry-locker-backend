@@ -24,12 +24,9 @@ public class CreateOrderRequest {
   @NotNull(message = "Locker ID is required")
   private Long lockerId;
 
-  /** Single box ID (backward compatibility). If boxIds is provided, this will be ignored. */
-  private Long boxId;
-
   /**
-   * Multiple box IDs for customers who need more than one box. If null/empty, system will
-   * auto-assign based on boxId or find available.
+   * Box IDs to use for this order (1 or more boxes). If null/empty, system will auto-assign an
+   * available box.
    */
   private Set<Long> boxIds;
 

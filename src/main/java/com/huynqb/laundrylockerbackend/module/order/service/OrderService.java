@@ -37,6 +37,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,16 +100,43 @@ public class OrderService {
 
     User sender = findUserById(senderId);
     Locker locker = findLockerById(request.getLockerId());
-    Box sendBox = findOrAssignBox(request.getBoxId(), locker.getId());
 
-    Order order = buildOrder(request, sender, locker, sendBox);
-    addOrderDetails(order, request.getItems());
+    // Handle boxIds - auto-assign if empty
+    Set<Box> sendBoxes = new java.util.LinkedHashSet<>();
+    Box primarySendBox;
+
+    if (request.getBoxIds() != null && !request.getBoxIds().isEmpty()) {
+      // Use specified boxes
+      for (Long boxId : request.getBoxIds()) {
+        Box box = findBoxById(boxId);
+        validateBoxAvailable(box);
+        box.setStatus(BoxStatus.OCCUPIED);
+        boxRepository.save(box);
+        sendBoxes.add(box);
+      }
+      primarySendBox = sendBoxes.iterator().next();
+    } else {
+      // Auto-assign an available box
+      primarySendBox = findAvailableBox(locker.getId());
+      primarySendBox.setStatus(BoxStatus.OCCUPIED);
+      boxRepository.save(primarySendBox);
+      sendBoxes.add(primarySendBox);
+    }
+
+    Order order = buildOrder(request, sender, locker, primarySendBox);
+
+    // Set all send boxes (works for both single and multiple)
+    order.setSendBoxes(sendBoxes);
+
+    // Handle serviceIds (new) or items (deprecated)
+    if (request.getServiceIds() != null && !request.getServiceIds().isEmpty()) {
+      addOrderDetailsFromServiceIds(order, request.getServiceIds(), request.getEstimatedWeight());
+    } else if (request.getItems() != null && !request.getItems().isEmpty()) {
+      addOrderDetails(order, request.getItems());
+    }
 
     // Apply promotion if provided
     applyPromotionToOrder(order, request.getPromotionCode(), request.getPromotionCodes());
-
-    sendBox.setStatus(BoxStatus.OCCUPIED);
-    boxRepository.save(sendBox);
 
     Order savedOrder = orderRepository.save(order);
     log.info("Order created: {} with PIN: {}", savedOrder.getId(), order.getPinCode());
@@ -582,12 +610,7 @@ public class OrderService {
     return boxRepository.findById(boxId).orElseThrow(() -> new OrderException("E_BOX001"));
   }
 
-  private Box findOrAssignBox(Long boxId, Long lockerId) {
-    if (boxId != null) {
-      Box box = findBoxById(boxId);
-      validateBoxAvailable(box);
-      return box;
-    }
+  private Box findAvailableBox(Long lockerId) {
     return boxRepository
         .findFirstByLockerIdAndStatusAndIsActiveTrue(lockerId, BoxStatus.AVAILABLE)
         .orElseThrow(() -> new OrderException("E_BOX002"));
@@ -663,6 +686,60 @@ public class OrderService {
       totalPrice = totalPrice.add(itemPrice);
     }
     order.setTotalPrice(totalPrice);
+  }
+
+  /**
+   * Add order details from serviceIds list (new format). Uses estimatedWeight for price calculation
+   * if provided.
+   */
+  private void addOrderDetailsFromServiceIds(
+      Order order, List<Long> serviceIds, Double estimatedWeight) {
+    if (serviceIds == null || serviceIds.isEmpty()) {
+      return;
+    }
+
+    // Set estimated weight on order
+    if (estimatedWeight != null) {
+      order.setActualWeight(BigDecimal.valueOf(estimatedWeight));
+      order.setWeightUnit("kg");
+    }
+
+    BigDecimal totalPrice = BigDecimal.ZERO;
+    // Default quantity: use estimatedWeight if provided, otherwise 1
+    double defaultQuantity = estimatedWeight != null ? estimatedWeight : 1.0;
+
+    for (Long serviceId : serviceIds) {
+      LaundryService service =
+          laundryServiceRepository
+              .findById(serviceId)
+              .orElseThrow(() -> new OrderException("E_SERVICE001"));
+
+      // Calculate price based on service pricing type
+      BigDecimal itemPrice;
+      double quantity;
+      if ("kg".equalsIgnoreCase(service.getUnit()) && estimatedWeight != null) {
+        // Per-weight service: price * estimatedWeight
+        quantity = estimatedWeight;
+        itemPrice = service.getPrice().multiply(BigDecimal.valueOf(estimatedWeight));
+      } else {
+        // Fixed price service: price * 1
+        quantity = 1.0;
+        itemPrice = service.getPrice();
+      }
+
+      OrderDetail detail =
+          OrderDetail.builder()
+              .order(order)
+              .service(service)
+              .quantity(quantity)
+              .price(itemPrice)
+              .build();
+
+      order.getOrderDetails().add(detail);
+      totalPrice = totalPrice.add(itemPrice);
+    }
+    order.setTotalPrice(totalPrice);
+    order.setOriginalPrice(totalPrice); // Store original price before discounts
   }
 
   private Payment createPayment(Order order, CheckoutOrderRequest request) {
