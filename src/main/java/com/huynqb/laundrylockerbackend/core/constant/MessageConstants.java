@@ -78,6 +78,8 @@ public class MessageConstants {
   public static final String E_AUTH005 = "E_AUTH005";
   public static final String E_AUTH006 = "E_AUTH006";
   public static final String E_AUTH007 = "E_AUTH007";
+  public static final String E_AUTH008 = "E_AUTH008"; // Invalid or expired temp registration token
+  public static final String E_AUTH009 = "E_AUTH009"; // Either tempToken or idToken is required
 
   // ===== Phone Errors =====
   public static final String E_PHONE001 = "E_PHONE001";
@@ -130,4 +132,17 @@ public class MessageConstants {
 
   // ===== External Service Errors =====
   public static final String E_EXTERNAL_SERVICE = "E_EXTERNAL_SERVICE";
+
+  // ===== Admin Auth Messages =====
+  public static final String ADMIN_AUTH_2FA_REQUIRED = "ADMIN_AUTH_2FA_REQUIRED";
+  public static final String ADMIN_AUTH_2FA_SUCCESS = "ADMIN_AUTH_2FA_SUCCESS";
+
+  // ===== Admin Auth Errors =====
+  public static final String E_ADMIN_AUTH_LOCKED = "E_ADMIN_AUTH_LOCKED";
+  public static final String E_ADMIN_AUTH_INVALID_CREDENTIALS = "E_ADMIN_AUTH_INVALID_CREDENTIALS";
+  public static final String E_ADMIN_AUTH_NOT_ADMIN = "E_ADMIN_AUTH_NOT_ADMIN";
+  public static final String E_ADMIN_AUTH_ACCOUNT_DISABLED = "E_ADMIN_AUTH_ACCOUNT_DISABLED";
+  public static final String E_ADMIN_AUTH_OTP_SEND_FAILED = "E_ADMIN_AUTH_OTP_SEND_FAILED";
+  public static final String E_ADMIN_AUTH_TEMP_TOKEN_INVALID = "E_ADMIN_AUTH_TEMP_TOKEN_INVALID";
+  public static final String E_ADMIN_AUTH_OTP_INVALID = "E_ADMIN_AUTH_OTP_INVALID";
 }

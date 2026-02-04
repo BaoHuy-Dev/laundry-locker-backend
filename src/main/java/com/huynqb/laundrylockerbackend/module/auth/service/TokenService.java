@@ -60,4 +60,30 @@ public interface TokenService {
    * @return true if exists, false otherwise
    */
   boolean refreshTokenExists(String token);
+
+  // ===== Temporary Registration Token Methods =====
+
+  /**
+   * Save a temporary registration token for new users
+   *
+   * @param tempToken The temporary token
+   * @param identifier The identifier (phone or email) to register
+   * @param expirationMs Time until the token expires (in milliseconds)
+   */
+  void saveTempRegistrationToken(String tempToken, String identifier, long expirationMs);
+
+  /**
+   * Get identifier (phone or email) by temporary registration token
+   *
+   * @param tempToken The temporary token
+   * @return The identifier, or null if not found or expired
+   */
+  String getIdentifierByTempToken(String tempToken);
+
+  /**
+   * Delete a temporary registration token after use
+   *
+   * @param tempToken The temporary token to delete
+   */
+  void deleteTempToken(String tempToken);
 }

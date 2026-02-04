@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.auth.dto.response;
 
+import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,4 +30,10 @@ public class EmailLoginResponse {
 
   /** True if OTP was verified successfully. */
   private boolean otpVerified;
+
+  /** Temporary token for registration completion (only for new users). */
+  private String tempToken;
+
+  /** User information (only for existing users) */
+  private UserResponse userInfo;
 }

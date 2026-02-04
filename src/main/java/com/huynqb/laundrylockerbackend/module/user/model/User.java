@@ -62,6 +62,10 @@ public class User extends BaseModel {
 
   @Builder.Default
   @Column(nullable = false)
+  private Boolean enabled = true;
+
+  @Builder.Default
+  @Column(nullable = false)
   private Boolean emailVerified = false;
 
   @Builder.Default private Boolean phoneVerified = false;

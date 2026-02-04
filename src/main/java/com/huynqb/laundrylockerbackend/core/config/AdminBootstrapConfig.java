@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.core.config;
 
+import com.huynqb.laundrylockerbackend.module.user.enums.AuthProvider;
 import com.huynqb.laundrylockerbackend.module.user.enums.RoleName;
 import com.huynqb.laundrylockerbackend.module.user.model.Role;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
@@ -14,15 +15,29 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Admin Bootstrap Configuration. Creates or updates the super admin user on application startup.
- * Only runs when admin.bootstrap.enabled=true.
+ * AdminBootstrapConfig - Automatically creates Super Admin user on application startup.
+ *
+ * <p>Configuration is read from environment variables or application properties:
+ *
+ * <ul>
+ *   <li>app.admin.bootstrap.enabled - Enable/disable bootstrap (default: true)
+ *   <li>app.admin.bootstrap.email - Super admin email (required)
+ *   <li>app.admin.bootstrap.password - Super admin password (required)
+ * </ul>
+ *
+ * <p>The bootstrap only runs if:
+ *
+ * <ul>
+ *   <li>Bootstrap is enabled
+ *   <li>Email and password are configured
+ *   <li>No admin with this email exists
+ * </ul>
  */
 @Slf4j
 @Component
-@Order(2) // Run after DataInitializer
+@Order(10) // Run after DataInitializer (which creates roles)
 @RequiredArgsConstructor
 public class AdminBootstrapConfig implements CommandLineRunner {
 
@@ -30,70 +45,86 @@ public class AdminBootstrapConfig implements CommandLineRunner {
   private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
 
-  @Value("${app.admin.bootstrap.enabled:false}")
+  @Value("${app.admin.bootstrap.enabled:true}")
   private boolean bootstrapEnabled;
 
-  @Value("${app.admin.bootstrap.email:admin@example.com}")
+  @Value("${app.admin.bootstrap.email:}")
   private String adminEmail;
 
-  @Value("${app.admin.bootstrap.password:Admin@123456}")
+  @Value("${app.admin.bootstrap.password:}")
   private String adminPassword;
 
   @Value("${app.admin.bootstrap.name:Super Admin}")
   private String adminName;
 
   @Override
-  @Transactional
-  public void run(String... args) {
+  public void run(String... args) throws Exception {
     if (!bootstrapEnabled) {
-      log.info("Admin bootstrap is disabled. Set app.admin.bootstrap.enabled=true to enable.");
+      log.info("Admin bootstrap is disabled");
       return;
     }
 
-    log.info("Admin bootstrap enabled. Processing admin user...");
-    createOrUpdateAdmin();
+    if (adminEmail == null || adminEmail.isBlank()) {
+      log.warn(
+          "Admin bootstrap email is not configured. Set SUPER_ADMIN_EMAIL or app.admin.bootstrap.email");
+      return;
+    }
+
+    if (adminPassword == null || adminPassword.isBlank()) {
+      log.warn(
+          "Admin bootstrap password is not configured. Set SUPER_ADMIN_PASSWORD or app.admin.bootstrap.password");
+      return;
+    }
+
+    // Check if admin already exists
+    if (userRepository.findByEmail(adminEmail.trim().toLowerCase()).isPresent()) {
+      log.info("Super Admin already exists: {}", adminEmail);
+      return;
+    }
+
+    // Ensure ADMIN role exists
+    Role adminRole =
+        roleRepository
+            .findByName(RoleName.ADMIN)
+            .orElseGet(
+                () -> {
+                  log.info("Creating ADMIN role...");
+                  return roleRepository.save(Role.builder().name(RoleName.ADMIN).build());
+                });
+
+    // Create Super Admin user
+    Set<Role> roles = new HashSet<>();
+    roles.add(adminRole);
+
+    User superAdmin =
+        User.builder()
+            .email(adminEmail.trim().toLowerCase())
+            .password(passwordEncoder.encode(adminPassword))
+            .name(adminName)
+            .firstName("Super")
+            .lastName("Admin")
+            .provider(AuthProvider.LOCAL)
+            .providerId("super_admin")
+            .emailVerified(true)
+            .phoneVerified(false)
+            .enabled(true)
+            .roles(roles)
+            .build();
+
+    userRepository.save(superAdmin);
+
+    log.info("╔════════════════════════════════════════════════════════════╗");
+    log.info("║              ✅ SUPER ADMIN CREATED SUCCESSFULLY           ║");
+    log.info("╠════════════════════════════════════════════════════════════╣");
+    log.info("║  Email: {}", padRight(adminEmail, 50) + "║");
+    log.info("║  Name:  {}", padRight(adminName, 50) + "║");
+    log.info("╚════════════════════════════════════════════════════════════╝");
   }
 
-  private void createOrUpdateAdmin() {
-    // Find or create admin user
-    User adminUser = userRepository.findByEmail(adminEmail).orElse(null);
-
-    // Get ADMIN role
-    Role adminRole = roleRepository.findByName(RoleName.ADMIN).orElse(null);
-
-    if (adminRole == null) {
-      log.error("ADMIN role not found. Please ensure DataInitializer runs first.");
-      return;
+  private String padRight(String s, int n) {
+    if (s.length() >= n) {
+      return s.substring(0, n - 3) + "...";
     }
-
-    if (adminUser == null) {
-      // Create new admin user
-      Set<Role> roles = new HashSet<>();
-      roles.add(adminRole);
-
-      adminUser =
-          User.builder()
-              .email(adminEmail)
-              .password(passwordEncoder.encode(adminPassword))
-              .name(adminName)
-              .emailVerified(true)
-              .roles(roles)
-              .build();
-
-      userRepository.save(adminUser);
-      log.info("Admin user CREATED: {}", adminEmail);
-    } else {
-      // Update existing admin user's password and ensure ADMIN role
-      adminUser.setPassword(passwordEncoder.encode(adminPassword));
-      adminUser.setEmailVerified(true);
-
-      if (adminUser.getRoles() == null) {
-        adminUser.setRoles(new HashSet<>());
-      }
-      adminUser.getRoles().add(adminRole);
-
-      userRepository.save(adminUser);
-      log.info("Admin user UPDATED: {}", adminEmail);
-    }
+    return String.format("%-" + n + "s", s);
   }
 }

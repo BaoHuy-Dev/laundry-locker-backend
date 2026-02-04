@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.locker.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
+import com.huynqb.laundrylockerbackend.module.locker.enums.BoxSize;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -50,6 +51,11 @@ public class Box extends BaseModel {
 
   @Column(length = 500)
   private String description;
+
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  @Column(nullable = false)
+  private BoxSize size = BoxSize.MEDIUM;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "locker_id", nullable = false)
