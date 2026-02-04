@@ -137,7 +137,7 @@ public class SampleDataLoader {
   private int orderCodeCounter = 0;
 
   @Bean
-  @Profile({"dev", "docker"})
+  @Profile({"dev", "docker", "azure"})
   public CommandLineRunner loadSampleData() {
     return args -> {
       log.info("========================================");
@@ -1418,7 +1418,8 @@ public class SampleDataLoader {
             storage,
             laundry));
 
-    // ===== More orders with boxes for junction tables (order_send_boxes, order_receive_boxes)
+    // ===== More orders with boxes for junction tables (order_send_boxes,
+    // order_receive_boxes)
     // =====
     // Get more boxes from different lockers
     List<Box> locker2Boxes = boxRepository.findByLockerId(locker2.getId());
