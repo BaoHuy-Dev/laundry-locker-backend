@@ -6,9 +6,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 
-/**
- * Factory class to create appropriate OAuth2UserInfo based on the OAuth2 provider.
- */
+/** Factory class to create appropriate OAuth2UserInfo based on the OAuth2 provider. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class OAuth2UserInfoFactory {
 
@@ -40,7 +38,9 @@ public class OAuth2UserInfoFactory {
     }
 
     throw new OAuth2AuthenticationException(
-        "Login with " + registrationId + " is not supported. " +
-        "Supported providers: Google, Facebook, GitHub, Zalo");
+        "Login with "
+            + registrationId
+            + " is not supported. "
+            + "Supported providers: Google, Facebook, GitHub, Zalo");
   }
 }
