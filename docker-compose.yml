@@ -122,6 +122,10 @@ services:
       SPRINGDOC_API_DOCS_ENABLED: ${SWAGGER_ENABLED}
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SWAGGER_ENABLED}
 
+      # Sample Data Loading
+      APP_LOAD_SAMPLE_DATA: ${LOAD_SAMPLE_DATA:-true}
+      APP_DATA_FORCE_RELOAD: ${FORCE_RELOAD_DATA:-false}
+
       # JVM Options
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 

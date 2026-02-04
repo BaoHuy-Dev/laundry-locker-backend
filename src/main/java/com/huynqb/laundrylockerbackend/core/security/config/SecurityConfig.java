@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.core.security.config;
 
+import com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter;
+import com.huynqb.laundrylockerbackend.core.security.handler.CustomAuthenticationEntryPoint;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationFailureHandler;
 import com.huynqb.laundrylockerbackend.core.security.handler.OAuth2AuthenticationSuccessHandler;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtAuthenticationFilter;
@@ -50,8 +52,8 @@ public class SecurityConfig {
   private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
   private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
-  private final com.huynqb.laundrylockerbackend.core.security.filter.EmailVerificationFilter
-      emailVerificationFilter;
+  private final EmailVerificationFilter emailVerificationFilter;
+  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
   // ==================== Configuration Properties ====================
   @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
@@ -66,7 +68,9 @@ public class SecurityConfig {
   // ==================== Public Endpoints ====================
   private static final String[] PUBLIC_ENDPOINTS = {"/", "/error", "/favicon.ico"};
 
-  private static final String[] AUTH_ENDPOINTS = {"/api/auth/**", "/oauth2/**", "/login/oauth2/**"};
+  private static final String[] AUTH_ENDPOINTS = {
+    "/api/auth/**", "/api/admin/auth/**", "/oauth2/**", "/login/oauth2/**"
+  };
 
   private static final String[] SWAGGER_ENDPOINTS = {
     "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**"
@@ -114,6 +118,10 @@ public class SecurityConfig {
     http
         // Disable CSRF for stateless APIs
         .csrf(csrf -> csrf.disable())
+
+        // Handle unauthorized attempts - REST APIs should return 401, not redirect to
+        // login page
+        .exceptionHandling(e -> e.authenticationEntryPoint(customAuthenticationEntryPoint))
 
         // Apply CORS configuration
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))

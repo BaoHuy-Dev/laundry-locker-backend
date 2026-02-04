@@ -1,7 +1,9 @@
 package com.huynqb.laundrylockerbackend.module.laundry.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
+import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceCategory;
 import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceStatus;
+import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceType;
 import com.huynqb.laundrylockerbackend.module.store.model.Store;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -41,10 +44,16 @@ public class LaundryService extends BaseModel {
   @Column(length = 1000)
   private String image;
 
+  /** Base price of the service. */
   @Column(nullable = false, precision = 12, scale = 2)
   private BigDecimal price;
 
-  private String unit; // kg, piece, etc.
+  /** Maximum price (for range pricing like 12.000 - 15.000). If null, only base price applies. */
+  @Column(precision = 12, scale = 2)
+  private BigDecimal maxPrice;
+
+  /** Unit of measurement: kg, piece, order, month, etc. */
+  private String unit;
 
   @Column(length = 2000)
   private String description;
@@ -52,6 +61,24 @@ public class LaundryService extends BaseModel {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private ServiceStatus status;
+
+  /** Category: STORAGE (gửi đồ) or LAUNDRY (giặt đồ). */
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ServiceCategory category;
+
+  /** Type of service for sub-categorization. */
+  @Enumerated(EnumType.STRING)
+  private ServiceType serviceType;
+
+  /** Whether this is an add-on service (like overnight charge). */
+  @Builder.Default private Boolean isAddon = false;
+
+  /** Whether this is a monthly package. */
+  @Builder.Default private Boolean isMonthlyPackage = false;
+
+  /** Estimated processing time in hours. */
+  private Integer estimatedHours;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "store_id", nullable = false)

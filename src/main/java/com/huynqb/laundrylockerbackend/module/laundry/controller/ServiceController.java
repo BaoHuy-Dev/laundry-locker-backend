@@ -5,6 +5,7 @@ import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.module.laundry.dto.response.ServiceResponse;
+import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceCategory;
 import com.huynqb.laundrylockerbackend.module.laundry.service.LaundryServiceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +44,33 @@ public class ServiceController {
   public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByStore(
       @RequestParam Long storeId) {
     List<ServiceResponse> services = laundryServiceService.getServicesByStore(storeId);
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
+  }
+
+  /**
+   * Get services by category (STORAGE or LAUNDRY). This is the main endpoint for the mobile app to
+   * show parent categories and their child services.
+   */
+  @Operation(
+      summary = "Get Services By Category",
+      description =
+          "Retrieve services by category. STORAGE = Dịch vụ gửi đồ, LAUNDRY = Dịch vụ giặt")
+  @GetMapping(params = "category")
+  public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByCategory(
+      @RequestParam ServiceCategory category) {
+    List<ServiceResponse> services = laundryServiceService.getServicesByCategory(category);
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
+  }
+
+  /** Get services by store ID and category. */
+  @Operation(
+      summary = "Get Services By Store and Category",
+      description = "Retrieve services at a specific store filtered by category")
+  @GetMapping(params = {"storeId", "category"})
+  public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByStoreAndCategory(
+      @RequestParam Long storeId, @RequestParam ServiceCategory category) {
+    List<ServiceResponse> services =
+        laundryServiceService.getServicesByStoreAndCategory(storeId, category);
     return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
   }
 

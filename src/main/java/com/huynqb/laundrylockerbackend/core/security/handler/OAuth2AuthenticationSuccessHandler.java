@@ -23,8 +23,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * OAuth2AuthenticationSuccessHandler - Generates JWT tokens after OAuth2 login.
- * Uses Redis via TokenService for refresh token storage.
+ * OAuth2AuthenticationSuccessHandler - Generates JWT tokens after OAuth2 login. Uses Redis via
+ * TokenService for refresh token storage.
  */
 @Slf4j
 @Component
@@ -79,8 +79,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
   }
 
   /**
-   * Extract User entity from Authentication principal.
-   * Supports both CustomOAuth2User and CustomOidcUser.
+   * Extract User entity from Authentication principal. Supports both CustomOAuth2User and
+   * CustomOidcUser.
    */
   private User extractUserFromAuthentication(Authentication authentication) {
     Object principal = authentication.getPrincipal();
@@ -101,9 +101,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     return null;
   }
 
-  /**
-   * Build redirect URL with tokens as query parameters.
-   */
+  /** Build redirect URL with tokens as query parameters. */
   private String buildSuccessRedirectUrl(String accessToken, String refreshToken) {
     return UriComponentsBuilder.fromUriString(frontendRedirectUri)
         .queryParam("token", accessToken)
@@ -112,28 +110,25 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         .toUriString();
   }
 
-  /**
-   * Handle authentication failure by redirecting to frontend with error.
-   */
+  /** Handle authentication failure by redirecting to frontend with error. */
   private void handleAuthenticationFailure(
       HttpServletRequest request, HttpServletResponse response, String errorMessage)
       throws IOException {
 
     String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
 
-    String targetUrl = UriComponentsBuilder.fromUriString(frontendRedirectUri)
-        .queryParam("error", "true")
-        .queryParam("message", encodedError)
-        .build()
-        .toUriString();
+    String targetUrl =
+        UriComponentsBuilder.fromUriString(frontendRedirectUri)
+            .queryParam("error", "true")
+            .queryParam("message", encodedError)
+            .build()
+            .toUriString();
 
     clearAuthenticationAttributes(request);
     getRedirectStrategy().sendRedirect(request, response, targetUrl);
   }
 
-  /**
-   * Create refresh token and save to Redis.
-   */
+  /** Create refresh token and save to Redis. */
   private String createRefreshToken(User user) {
     String tokenValue = UUID.randomUUID().toString();
 

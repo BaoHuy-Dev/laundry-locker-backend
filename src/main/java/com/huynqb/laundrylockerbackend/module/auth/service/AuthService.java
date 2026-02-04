@@ -9,9 +9,11 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.request.CompleteRegistrat
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegistrationRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.ResetPasswordRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.AuthResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.EmailLoginResponse;
 import com.huynqb.laundrylockerbackend.module.auth.dto.response.PhoneLoginResponse;
@@ -46,6 +48,7 @@ public class AuthService {
   private final JwtTokenProvider jwtTokenProvider;
   private final FirebaseService firebaseService;
   private final EmailOtpService emailOtpService;
+  private final com.huynqb.laundrylockerbackend.module.auth.mapper.AuthMapper authMapper;
 
   @Value("${app.security.jwt.expiration-ms}")
   private long jwtExpirationMs;
@@ -85,33 +88,50 @@ public class AuthService {
 
       log.info("Phone login successful for existing user: {}", phoneNumber);
 
-      return PhoneLoginResponse.builder()
-          .accessToken(accessToken)
-          .refreshToken(refreshToken)
-          .tokenType("Bearer")
-          .expiresIn(jwtExpirationMs / 1000)
-          .isNewUser(false)
-          .build();
+      return authMapper.toPhoneLoginResponse(
+          accessToken, refreshToken, jwtExpirationMs / 1000, user);
     } else {
-      // New user - return flag to complete registration
+      // New user - generate temp token and save to Redis for registration
+      String tempToken = UUID.randomUUID().toString();
+      long tempTokenTtl = 600000L; // 10 minutes
+      tokenService.saveTempRegistrationToken(tempToken, phoneNumber, tempTokenTtl);
+
       log.info("New phone user detected, needs registration: {}", phoneNumber);
 
-      return PhoneLoginResponse.builder().isNewUser(true).build();
+      return authMapper.toNewUserPhoneResponse(phoneNumber, tempToken);
     }
   }
 
   /**
-   * Complete registration for new phone users. Called after phone OTP verification.
+   * Complete registration for new phone users. Called after phone OTP verification. Supports both
+   * tempToken (preferred) and Firebase idToken authentication.
    *
-   * @param request Registration details with Firebase ID token
+   * @param request Registration details with tempToken or Firebase ID token
    * @return Authentication response with JWT tokens
    */
   @Transactional
   public AuthResponse completeRegistration(CompleteRegistrationRequest request) {
+    String phoneNumber;
+    String providerId;
 
-    // Verify Firebase ID token again
-    FirebaseToken firebaseToken = firebaseService.verifyIdToken(request.getIdToken());
-    String phoneNumber = firebaseService.extractPhoneNumber(firebaseToken);
+    // Try tempToken first (preferred method)
+    if (request.getTempToken() != null && !request.getTempToken().isBlank()) {
+      phoneNumber = tokenService.getIdentifierByTempToken(request.getTempToken());
+      if (phoneNumber == null) {
+        throw new AuthenticationException(E_AUTH008); // Invalid or expired temp token
+      }
+      // Delete temp token after use
+      tokenService.deleteTempToken(request.getTempToken());
+      // Generate providerId from phone number for tempToken flow
+      providerId = "phone_" + phoneNumber.replaceAll("[^0-9]", "");
+    } else if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
+      // Fallback to Firebase ID token
+      FirebaseToken firebaseToken = firebaseService.verifyIdToken(request.getIdToken());
+      phoneNumber = firebaseService.extractPhoneNumber(firebaseToken);
+      providerId = firebaseToken.getUid();
+    } else {
+      throw new AuthenticationException(E_AUTH009); // Either tempToken or idToken required
+    }
 
     // Check if user already exists
     if (userRepository.findByPhoneNumber(phoneNumber).isPresent()) {
@@ -127,7 +147,7 @@ public class AuthService {
             .name(request.getFirstName() + " " + request.getLastName())
             .birthday(request.getBirthday())
             .provider(AuthProvider.PHONE)
-            .providerId(firebaseToken.getUid())
+            .providerId(providerId)
             .phoneVerified(true)
             .emailVerified(false)
             .roles(getDefaultRoles())
@@ -140,12 +160,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return AuthResponse.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
   }
 
   // ===== Email OTP Authentication =====
@@ -192,19 +207,18 @@ public class AuthService {
 
       log.info("Email login successful for existing user: {}", email);
 
-      return EmailLoginResponse.builder()
-          .accessToken(accessToken)
-          .refreshToken(refreshToken)
-          .tokenType("Bearer")
-          .expiresIn(jwtExpirationMs / 1000)
-          .isNewUser(false)
-          .otpVerified(true)
-          .build();
+      return authMapper.toEmailLoginResponse(
+          accessToken, refreshToken, jwtExpirationMs / 1000, user);
     } else {
       // New user - return flag to complete registration
+      // Generate temp token and save to Redis for registration
+      String tempToken = UUID.randomUUID().toString();
+      long tempTokenTtl = 600000L; // 10 minutes
+      tokenService.saveTempRegistrationToken(tempToken, email, tempTokenTtl);
+
       log.info("New email user detected, needs registration: {}", email);
 
-      return EmailLoginResponse.builder().isNewUser(true).otpVerified(true).build();
+      return authMapper.toNewUserEmailResponse(tempToken);
     }
   }
 
@@ -216,12 +230,15 @@ public class AuthService {
    */
   @Transactional
   public AuthResponse emailCompleteRegistration(EmailCompleteRegistrationRequest request) {
-    String email = request.getEmail().trim().toLowerCase();
+    // Validate temp token
+    String email = tokenService.getIdentifierByTempToken(request.getTempToken());
 
-    // Verify OTP again for security
-    if (!emailOtpService.verifyOtp(email, request.getOtp())) {
-      throw new AuthenticationException(E_OTP001);
+    if (email == null) {
+      throw new AuthenticationException(E_AUTH008); // Invalid or expired temp token
     }
+
+    // Delete temp token after use
+    tokenService.deleteTempToken(request.getTempToken());
 
     // Check if user already exists
     if (userRepository.findByEmail(email).isPresent()) {
@@ -249,12 +266,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return AuthResponse.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
   }
 
   // ===== Token Management =====
@@ -284,12 +296,7 @@ public class AuthService {
 
     log.info("Access token refreshed for user ID: {}", user.getId());
 
-    return AuthResponse.builder()
-        .accessToken(newAccessToken)
-        .refreshToken(refreshTokenValue)
-        .tokenType("Bearer")
-        .expiresIn(jwtExpirationMs / 1000)
-        .build();
+    return authMapper.toAuthResponse(newAccessToken, refreshTokenValue, jwtExpirationMs / 1000);
   }
 
   /**
@@ -357,5 +364,72 @@ public class AuthService {
     Set<Role> roles = new HashSet<>();
     roleRepository.findByName(RoleName.USER).ifPresent(roles::add);
     return roles;
+  }
+
+  // ===== Password Reset Methods =====
+
+  /**
+   * Send password reset OTP to email.
+   *
+   * @param request Forgot password request
+   */
+  @Transactional
+  public void sendPasswordResetOtp(ForgotPasswordRequest request) {
+    log.info("Password reset requested for email: {}", request.getEmail());
+
+    // Check if user exists
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new AuthenticationException("E_AUTH_USER_NOT_FOUND"));
+
+    // Send OTP using email OTP service
+    EmailSendOtpRequest otpRequest = new EmailSendOtpRequest();
+    otpRequest.setEmail(request.getEmail());
+
+    boolean sent = emailOtpService.sendOtp(request.getEmail());
+    if (!sent) {
+      throw new AuthenticationException(AUTH_OTP_SEND_FAILED);
+    }
+
+    log.info("Password reset OTP sent to: {}", request.getEmail());
+  }
+
+  /**
+   * Reset password with OTP verification.
+   *
+   * @param request Reset password request
+   */
+  @Transactional
+  public void resetPassword(ResetPasswordRequest request) {
+    log.info("Password reset attempt for email: {}", request.getEmail());
+
+    // Verify OTP
+    boolean isValid = emailOtpService.verifyOtp(request.getEmail(), request.getOtp());
+    if (!isValid) {
+      throw new AuthenticationException("E_AUTH_OTP_INVALID");
+    }
+
+    // Find user
+    User user =
+        userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() -> new AuthenticationException("E_AUTH_USER_NOT_FOUND"));
+
+    // Validate password confirmation
+    if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+      throw new AuthenticationException("Passwords do not match");
+    }
+
+    // Update password (should be encoded)
+    user.setPassword(
+        org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
+            request.getNewPassword(), org.springframework.security.crypto.bcrypt.BCrypt.gensalt()));
+    userRepository.save(user);
+
+    // Invalidate all existing tokens for the user
+    tokenService.deleteAllUserRefreshTokens(user.getId());
+
+    log.info("Password reset successful for user: {}", user.getId());
   }
 }
