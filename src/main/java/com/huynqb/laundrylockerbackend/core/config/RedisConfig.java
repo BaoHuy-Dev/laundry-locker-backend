@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -13,6 +14,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 /**
  * Redis Configuration for Token Management Provides RedisTemplate beans for storing: - Access token
  * blacklist (with TTL) - Refresh tokens (with TTL)
+ *
+ * <p>Supports SSL/TLS for cloud Redis providers like Upstash.
  */
 @Configuration
 public class RedisConfig {
@@ -26,15 +29,27 @@ public class RedisConfig {
   @Value("${spring.data.redis.password:}")
   private String redisPassword;
 
+  @Value("${spring.data.redis.ssl.enabled:false}")
+  private boolean sslEnabled;
+
   @Bean
   public LettuceConnectionFactory redisConnectionFactory() {
-    RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-    config.setHostName(redisHost);
-    config.setPort(redisPort);
+    RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
+    redisConfig.setHostName(redisHost);
+    redisConfig.setPort(redisPort);
     if (redisPassword != null && !redisPassword.isEmpty()) {
-      config.setPassword(redisPassword);
+      redisConfig.setPassword(redisPassword);
     }
-    return new LettuceConnectionFactory(config);
+
+    LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfigBuilder =
+        LettuceClientConfiguration.builder();
+
+    // Enable SSL/TLS for cloud providers like Upstash
+    if (sslEnabled) {
+      clientConfigBuilder.useSsl();
+    }
+
+    return new LettuceConnectionFactory(redisConfig, clientConfigBuilder.build());
   }
 
   @Bean

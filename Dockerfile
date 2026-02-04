@@ -52,6 +52,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # JVM tuning for container environment
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
 
+ENV SPRING_PROFILES_ACTIVE=azure
+
 # Entrypoint
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
