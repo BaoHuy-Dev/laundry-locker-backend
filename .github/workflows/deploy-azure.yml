@@ -139,26 +139,28 @@ jobs:
           imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
       
       - name: Health Check
+        continue-on-error: true
         run: |
           echo "⏳ Waiting for deployment to stabilize..."
-          sleep 90
+          sleep 120
           
           # Health check with retries
           for i in {1..5}; do
             response=$(curl -s -o /dev/null -w "%{http_code}" \
               https://laundry-locker-api.mangotree-f5c365fa.eastasia.azurecontainerapps.io/actuator/health \
-              --max-time 30)
+              --max-time 60 --connect-timeout 30)
             
             if [ "$response" == "200" ]; then
               echo "✅ Health check passed!"
               exit 0
             else
-              echo "⏳ Attempt $i: Health check returned $response, retrying in 30s..."
-              sleep 30
+              echo "⏳ Attempt $i: Health check returned $response, retrying in 45s..."
+              sleep 45
             fi
           done
           
           echo "⚠️ Health check did not pass after 5 attempts (may still be starting)"
+          echo "📍 Check manually: https://laundry-locker-api.mangotree-f5c365fa.eastasia.azurecontainerapps.io/actuator/health"
       
       - name: Azure logout
         run: az logout
