@@ -20,8 +20,11 @@ import org.springframework.core.io.ResourceLoader;
 @Configuration
 public class FirebaseConfig {
 
-  @Value("${firebase.credentials.path}")
+  @Value("${firebase.credentials.path:}")
   private String firebaseCredentialsPath;
+
+  @Value("${firebase.enabled:true}")
+  private boolean firebaseEnabled;
 
   private final ResourceLoader resourceLoader;
 
@@ -31,9 +34,23 @@ public class FirebaseConfig {
 
   @PostConstruct
   public void initialize() {
+    if (!firebaseEnabled) {
+      log.info("Firebase is disabled via configuration");
+      return;
+    }
+
+    if (firebaseCredentialsPath == null || firebaseCredentialsPath.isEmpty()) {
+      log.warn("Firebase credentials path not configured. Firebase features will be disabled.");
+      return;
+    }
+
     try {
       if (FirebaseApp.getApps().isEmpty()) {
         Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
+        if (!resource.exists()) {
+          log.warn("Firebase credentials file not found at {}. Firebase features will be disabled.", firebaseCredentialsPath);
+          return;
+        }
         InputStream serviceAccount = resource.getInputStream();
 
         FirebaseOptions options =
@@ -45,8 +62,7 @@ public class FirebaseConfig {
         log.info("Firebase Admin SDK initialized successfully");
       }
     } catch (IOException e) {
-      log.error("Failed to initialize Firebase Admin SDK: {}", e.getMessage());
-      throw new RuntimeException("Could not initialize Firebase", e);
+      log.error("Failed to initialize Firebase Admin SDK: {}. Firebase features will be disabled.", e.getMessage());
     }
   }
 }

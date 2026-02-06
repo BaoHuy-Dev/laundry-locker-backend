@@ -53,6 +53,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
+      - name: Create Firebase credentials file
+        run: |
+          mkdir -p src/main/resources/firebase
+          echo "${{ secrets.FIREBASE_CREDENTIALS_BASE64 }}" | base64 -d > src/main/resources/firebase/firebase-service-account.json
+      
       - name: Make Maven Wrapper executable
         run: chmod +x ./mvnw
       
