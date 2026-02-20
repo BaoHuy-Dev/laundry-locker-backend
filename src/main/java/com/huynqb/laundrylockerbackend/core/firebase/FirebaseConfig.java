@@ -48,7 +48,9 @@ public class FirebaseConfig {
       if (FirebaseApp.getApps().isEmpty()) {
         Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
         if (!resource.exists()) {
-          log.warn("Firebase credentials file not found at {}. Firebase features will be disabled.", firebaseCredentialsPath);
+          log.warn(
+              "Firebase credentials file not found at {}. Firebase features will be disabled.",
+              firebaseCredentialsPath);
           return;
         }
         InputStream serviceAccount = resource.getInputStream();
@@ -62,7 +64,9 @@ public class FirebaseConfig {
         log.info("Firebase Admin SDK initialized successfully");
       }
     } catch (IOException e) {
-      log.error("Failed to initialize Firebase Admin SDK: {}. Firebase features will be disabled.", e.getMessage());
+      log.error(
+          "Failed to initialize Firebase Admin SDK: {}. Firebase features will be disabled.",
+          e.getMessage());
     }
   }
 }

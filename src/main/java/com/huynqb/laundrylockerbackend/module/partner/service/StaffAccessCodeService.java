@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.partner.service;
 
 import com.huynqb.laundrylockerbackend.core.util.CodeGenerator;
+import com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService;
 import com.huynqb.laundrylockerbackend.module.locker.model.Box;
 import com.huynqb.laundrylockerbackend.module.notification.service.NotificationService;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
@@ -44,6 +45,7 @@ public class StaffAccessCodeService {
   private final NotificationService notificationService;
   private final StaffAccessCodeMapper accessCodeMapper;
   private final OrderBoxHelper orderBoxHelper;
+  private final LockerMqttService lockerMqttService;
 
   private static final int DEFAULT_EXPIRATION_HOURS = 24;
 
@@ -116,6 +118,17 @@ public class StaffAccessCodeService {
     // Handle box status for return action
     if (accessCode.getAction() == AccessCodeAction.RETURN) {
       orderBoxHelper.markBoxesAsOccupied(boxes);
+    }
+
+    // Publish MQTT unlock command to ESP8266 for each box
+    try {
+      String deviceId = order.getLocker().getCode();
+      for (Box box : boxes) {
+        lockerMqttService.sendUnlockCommand(deviceId, box.getBoxNumber());
+      }
+    } catch (Exception e) {
+      log.error(
+          "Failed to send MQTT unlock command for order {}: {}", order.getId(), e.getMessage());
     }
 
     // Send notification

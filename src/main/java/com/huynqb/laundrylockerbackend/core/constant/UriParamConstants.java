@@ -43,6 +43,9 @@ public class UriParamConstants {
   public static final String PHONE_LOGIN = "/phone-login";
   public static final String COMPLETE_REGISTRATION = "/complete-registration";
 
+  // ===== Kiosk Quick Register =====
+  public static final String KIOSK_QUICK_REGISTER = "/kiosk/quick-register";
+
   // ===== Email OTP Authentication =====
   public static final String EMAIL_SEND_OTP = "/email/send-otp";
   public static final String EMAIL_VERIFY_OTP = "/email/verify-otp";
