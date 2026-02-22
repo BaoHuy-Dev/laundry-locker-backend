@@ -6,6 +6,8 @@ import com.huynqb.laundrylockerbackend.module.laundry.enums.ServiceStatus;
 import com.huynqb.laundrylockerbackend.module.laundry.mapper.LaundryServiceMapper;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
 import com.huynqb.laundrylockerbackend.module.laundry.repository.LaundryServiceRepository;
+import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
+import com.huynqb.laundrylockerbackend.module.locker.repository.LockerRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ public class LaundryServiceService {
 
   private final LaundryServiceRepository laundryServiceRepository;
   private final LaundryServiceMapper laundryServiceMapper;
+  private final LockerRepository lockerRepository;
 
   @Transactional(readOnly = true)
   public List<ServiceResponse> getAllServices() {
@@ -77,5 +80,46 @@ public class LaundryServiceService {
         .stream()
         .map(laundryServiceMapper::toResponse)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Get services by locker ID. This method finds the store associated with the locker and returns
+   * services available at that store. Designed for Kiosk app which only knows the Locker ID.
+   *
+   * @param lockerId the locker ID
+   * @return list of active services at the locker's store
+   */
+  @Transactional(readOnly = true)
+  public List<ServiceResponse> getServicesByLocker(Long lockerId) {
+    Locker locker =
+        lockerRepository
+            .findById(lockerId)
+            .orElseThrow(
+                () -> new EntityNotFoundException("Locker not found with ID: " + lockerId));
+
+    Long storeId = locker.getStore().getId();
+    return getServicesByStore(storeId);
+  }
+
+  /**
+   * Get services by locker ID and category. This method finds the store associated with the locker
+   * and returns services filtered by category. Designed for Kiosk app to get STORAGE or LAUNDRY
+   * services.
+   *
+   * @param lockerId the locker ID
+   * @param category the service category (STORAGE or LAUNDRY)
+   * @return list of active services at the locker's store filtered by category
+   */
+  @Transactional(readOnly = true)
+  public List<ServiceResponse> getServicesByLockerAndCategory(
+      Long lockerId, ServiceCategory category) {
+    Locker locker =
+        lockerRepository
+            .findById(lockerId)
+            .orElseThrow(
+                () -> new EntityNotFoundException("Locker not found with ID: " + lockerId));
+
+    Long storeId = locker.getStore().getId();
+    return getServicesByStoreAndCategory(storeId, category);
   }
 }
