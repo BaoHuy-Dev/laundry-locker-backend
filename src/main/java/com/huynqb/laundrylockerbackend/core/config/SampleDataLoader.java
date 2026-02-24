@@ -137,6 +137,7 @@ public class SampleDataLoader {
   private int orderCodeCounter = 0;
 
   @Bean
+  @org.springframework.core.annotation.Order(20) // Run after AdminBootstrapConfig (Order 10)
   @Profile({"dev", "docker", "azure"})
   public CommandLineRunner loadSampleData() {
     return args -> {
