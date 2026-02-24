@@ -11,11 +11,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 /**
  * SchemaInitializer - Ensures the database schema exists before Hibernate runs.
  *
- * <p>This solves the issue where Docker volume already exists but schema was not created,
- * causing Hibernate to fail when trying to create tables in non-existent schema.
+ * <p>This solves the issue where Docker volume already exists but schema was not created, causing
+ * Hibernate to fail when trying to create tables in non-existent schema.
  *
- * <p>This runs at @PostConstruct (before CommandLineRunner) to ensure schema exists
- * before any entity operations.
+ * <p>This runs at @PostConstruct (before CommandLineRunner) to ensure schema exists before any
+ * entity operations.
  */
 @Slf4j
 @Configuration
@@ -44,8 +44,7 @@ public class SchemaInitializer {
         jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
 
         // Grant privileges
-        jdbcTemplate.execute(
-            "GRANT ALL PRIVILEGES ON SCHEMA " + schemaName + " TO CURRENT_USER");
+        jdbcTemplate.execute("GRANT ALL PRIVILEGES ON SCHEMA " + schemaName + " TO CURRENT_USER");
 
         log.info("✅ Schema '{}' created successfully!", schemaName);
       } else {
@@ -62,4 +61,3 @@ public class SchemaInitializer {
     }
   }
 }
-

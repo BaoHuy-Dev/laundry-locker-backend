@@ -471,6 +471,14 @@ public class SampleDataLoader {
             "0900000006",
             pwd,
             Set.of(userRole, partnerRole)));
+    users.add(
+        createUser(
+            "nqbhuy2004nt@gmail.com",
+            "Huy",
+            "Nguyễn Quốc Bảo",
+            "0900000007",
+            pwd,
+            Set.of(userRole, partnerRole)));
 
     // Customers (15)
     users.add(
@@ -566,7 +574,8 @@ public class SampleDataLoader {
       "partner.huong@gmail.com",
       "partner.nam@gmail.com",
       "partner.thao@gmail.com",
-      "partner.binh@gmail.com"
+      "partner.binh@gmail.com",
+      "nqbhuy2004nt@gmail.com"
     };
     String[][] businessInfo = {
       {
@@ -608,6 +617,14 @@ public class SampleDataLoader {
         "200 Lê Văn Việt, Quận 9",
         "APPROVED",
         "65.00"
+      },
+      {
+        "Huy Laundry Service - Quận Tân Bình",
+        "BRN-TB-001",
+        "TAX-TB-001",
+        "500 Cộng Hòa, Quận Tân Bình",
+        "APPROVED",
+        "70.00"
       }
     };
 

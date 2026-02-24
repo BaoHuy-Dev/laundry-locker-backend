@@ -111,12 +111,17 @@ public class JwtTokenProvider {
   /**
    * Extract email (subject) from JWT token
    *
-   * @param token JWT token
+   * @param token JWT token (with or without "Bearer " prefix)
    * @return User email
    */
   public String getEmailFromToken(String token) {
+    String actualToken = extractToken(token);
     Claims claims =
-        Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+        Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(actualToken)
+            .getPayload();
 
     return claims.getSubject();
   }
@@ -124,13 +129,31 @@ public class JwtTokenProvider {
   /**
    * Extract user ID from JWT token.
    *
-   * @param token JWT token
+   * @param token JWT token (with or without "Bearer " prefix)
    * @return User ID
    */
   public Long getUserIdFromToken(String token) {
+    String actualToken = extractToken(token);
     Claims claims =
-        Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+        Jwts.parser()
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(actualToken)
+            .getPayload();
     return claims.get("userId", Long.class);
+  }
+
+  /**
+   * Extract pure token from Authorization header. Removes "Bearer " prefix if present.
+   *
+   * @param authHeader Authorization header value
+   * @return Pure JWT token
+   */
+  private String extractToken(String authHeader) {
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+      return authHeader.substring(7);
+    }
+    return authHeader;
   }
 
   /**

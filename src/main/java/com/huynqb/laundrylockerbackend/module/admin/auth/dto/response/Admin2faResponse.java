@@ -2,6 +2,7 @@ package com.huynqb.laundrylockerbackend.module.admin.auth.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,6 +29,9 @@ public class Admin2faResponse {
   @Schema(description = "Token expiration time in seconds", example = "86400")
   private Long expiresIn;
 
+  @Schema(description = "User roles", example = "[\"ADMIN\"]")
+  private Set<String> roles;
+
   @Schema(description = "Admin user information")
   private AdminUserInfo user;
 
@@ -45,5 +49,8 @@ public class Admin2faResponse {
 
     @Schema(description = "Admin full name", example = "System Admin")
     private String name;
+
+    @Schema(description = "User roles", example = "[\"ADMIN\"]")
+    private Set<String> roles;
   }
 }

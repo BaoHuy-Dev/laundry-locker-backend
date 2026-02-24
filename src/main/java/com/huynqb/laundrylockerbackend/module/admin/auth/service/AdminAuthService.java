@@ -15,6 +15,7 @@ import com.huynqb.laundrylockerbackend.module.auth.service.TokenService;
 import com.huynqb.laundrylockerbackend.module.user.enums.RoleName;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
@@ -183,6 +184,12 @@ public class AdminAuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(user);
     String refreshToken = createRefreshToken(user);
 
+    // Extract role names
+    Set<String> roleNames =
+        user.getRoles().stream()
+            .map(role -> role.getName().name())
+            .collect(java.util.stream.Collectors.toSet());
+
     log.info("Admin 2FA verification successful for: {}", user.getEmail());
 
     return Admin2faResponse.builder()
@@ -190,6 +197,7 @@ public class AdminAuthService {
         .refreshToken(refreshToken)
         .tokenType("Bearer")
         .expiresIn(jwtExpirationMs / 1000)
+        .roles(roleNames)
         .user(
             Admin2faResponse.AdminUserInfo.builder()
                 .id(user.getId())
@@ -198,6 +206,7 @@ public class AdminAuthService {
                     user.getName() != null
                         ? user.getName()
                         : (user.getFirstName() + " " + user.getLastName()))
+                .roles(roleNames)
                 .build())
         .build();
   }
@@ -231,10 +240,17 @@ public class AdminAuthService {
     // Generate new access token
     String accessToken = jwtTokenProvider.generateTokenFromUser(user);
 
+    // Extract role names
+    Set<String> roleNames =
+        user.getRoles().stream()
+            .map(role -> role.getName().name())
+            .collect(java.util.stream.Collectors.toSet());
+
     return AuthResponse.builder()
         .accessToken(accessToken)
         .refreshToken(refreshToken)
         .expiresIn(jwtExpirationMs / 1000)
+        .roles(roleNames)
         .build();
   }
 
