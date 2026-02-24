@@ -6,6 +6,8 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.response.PhoneLoginRespon
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -36,6 +38,7 @@ public abstract class AuthMapper {
         .expiresIn(expiresIn)
         .isNewUser(false)
         .userInfo(toUserResponse(user))
+        .roles(extractRoles(user))
         .build();
   }
 
@@ -73,6 +76,7 @@ public abstract class AuthMapper {
         .isNewUser(false)
         .otpVerified(true)
         .userInfo(toUserResponse(user))
+        .roles(extractRoles(user))
         .build();
   }
 
@@ -108,6 +112,26 @@ public abstract class AuthMapper {
   }
 
   /**
+   * Build AuthResponse with tokens and roles.
+   *
+   * @param accessToken JWT access token
+   * @param refreshToken Refresh token
+   * @param expiresIn Token expiration in seconds
+   * @param user User entity to extract roles
+   * @return AuthResponse with tokens and roles
+   */
+  public AuthResponse toAuthResponse(
+      String accessToken, String refreshToken, long expiresIn, User user) {
+    return AuthResponse.builder()
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .tokenType("Bearer")
+        .expiresIn(expiresIn)
+        .roles(extractRoles(user))
+        .build();
+  }
+
+  /**
    * Map User entity to UserResponse DTO using UserMapper.
    *
    * @param user User entity
@@ -115,5 +139,18 @@ public abstract class AuthMapper {
    */
   public UserResponse toUserResponse(User user) {
     return userMapper.toResponse(user);
+  }
+
+  /**
+   * Extract role names from User entity.
+   *
+   * @param user User entity
+   * @return Set of role names as strings
+   */
+  protected Set<String> extractRoles(User user) {
+    if (user == null || user.getRoles() == null) {
+      return null;
+    }
+    return user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet());
   }
 }

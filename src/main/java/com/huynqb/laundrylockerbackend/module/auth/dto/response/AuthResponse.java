@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.auth.dto.response;
 
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,4 +21,7 @@ public class AuthResponse {
   @Builder.Default private String tokenType = "Bearer";
 
   private long expiresIn; // seconds
+
+  /** User roles (e.g., USER, ADMIN, PARTNER) */
+  private Set<String> roles;
 }

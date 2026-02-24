@@ -161,7 +161,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
   }
 
   // ===== Email OTP Authentication =====
@@ -267,7 +267,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
   }
 
   // ===== Kiosk Quick Registration =====
@@ -322,7 +322,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
   }
 
   // ===== Token Management =====
@@ -352,7 +352,8 @@ public class AuthService {
 
     log.info("Access token refreshed for user ID: {}", user.getId());
 
-    return authMapper.toAuthResponse(newAccessToken, refreshTokenValue, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(
+        newAccessToken, refreshTokenValue, jwtExpirationMs / 1000, user);
   }
 
   /**
