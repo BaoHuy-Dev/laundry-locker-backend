@@ -89,7 +89,11 @@ public class SecurityConfig {
 
   // IoT endpoints that use PIN for authentication (no login required)
   private static final String[] IOT_PUBLIC_ENDPOINTS = {
-    "/api/iot/verify-pin", "/api/iot/unlock", "/api/iot/unlock-with-code", "/api/iot/box-status"
+    "/api/iot/verify-pin",
+    "/api/iot/unlock",
+    "/api/iot/unlock-with-code",
+    "/api/iot/box-status",
+    "/api/orders/pin/**"
   };
 
   // ==================== Security Filter Chains ====================
