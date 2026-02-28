@@ -93,6 +93,7 @@ public class SecurityConfig {
     "/api/iot/unlock",
     "/api/iot/unlock-with-code",
     "/api/iot/box-status",
+    "/api/iot/test-mqtt",
     "/api/orders/pin/**"
   };
 

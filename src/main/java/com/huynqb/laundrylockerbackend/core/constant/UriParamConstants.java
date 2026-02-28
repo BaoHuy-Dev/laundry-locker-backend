@@ -265,6 +265,9 @@ public class UriParamConstants {
   public static final String LOYALTY_EXPIRING_POINTS = "/points/expiring";
   public static final String LOYALTY_TRANSFER_POINTS = "/points/transfer";
 
+  // ===== User - Promotions (public) =====
+  public static final String ROOT_URI_PROMOTIONS = "/api/promotions";
+
   // ===== Admin - System & Promotions =====
   public static final String ROOT_URI_ADMIN_PROMOTIONS = "/api/admin/promotions";
   public static final String ADMIN_SYSTEM_HEALTH = "/system/health";

@@ -143,6 +143,7 @@ public class AuthService {
     User newUser =
         User.builder()
             .phoneNumber(phoneNumber)
+            .email(request.getEmail())
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
             .name(request.getFirstName() + " " + request.getLastName())
@@ -250,6 +251,7 @@ public class AuthService {
     User newUser =
         User.builder()
             .email(email)
+            .phoneNumber(request.getPhoneNumber())
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
             .name(request.getFirstName() + " " + request.getLastName())

@@ -46,6 +46,8 @@ public class OrderResponse {
   private String lockerCode;
   private Integer sendBoxNumber;
   private Integer receiveBoxNumber;
+  private Long sendBoxId;
+  private Long receiveBoxId;
 
   // Multiple boxes support
   private Set<Integer> sendBoxNumbers;

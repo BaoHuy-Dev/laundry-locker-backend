@@ -35,4 +35,6 @@ public class CompleteRegistrationRequest {
 
   @NotNull(message = "Birthday is required")
   private LocalDate birthday;
+
+  private String email;
 }
