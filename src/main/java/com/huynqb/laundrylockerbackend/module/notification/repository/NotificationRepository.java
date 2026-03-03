@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.notification.repository;
 
 import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationStatus;
+import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationType;
 import com.huynqb.laundrylockerbackend.module.notification.model.Notification;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -36,6 +37,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
       @Param("userId") Long userId,
       @Param("status") NotificationStatus status,
       @Param("currentStatus") NotificationStatus currentStatus);
+
+  /** Mark a batch of notifications as read by IDs and user. */
+  @Modifying
+  @Query(
+      "UPDATE Notification n SET n.status = :status, n.readAt = CURRENT_TIMESTAMP WHERE n.id IN :ids AND n.user.id = :userId AND n.status = :currentStatus")
+  int markBatchAsRead(
+      @Param("ids") List<Long> ids,
+      @Param("userId") Long userId,
+      @Param("status") NotificationStatus status,
+      @Param("currentStatus") NotificationStatus currentStatus);
+
+  /** Find all notifications ordered by creation date desc (for admin). */
+  Page<Notification> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+  /** Find all notifications by type (for admin). */
+  Page<Notification> findByTypeOrderByCreatedAtDesc(NotificationType type, Pageable pageable);
 
   /** Delete all notifications for a user. */
   void deleteByUserId(Long userId);

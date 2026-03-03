@@ -24,6 +24,7 @@ public class TagConstants {
   public static final String ROOT_TAG_ADMIN_LOCKERS = "ADMIN - LOCKERS";
   public static final String ROOT_TAG_ADMIN_ORDERS = "ADMIN - ORDERS";
   public static final String ROOT_TAG_ADMIN_PAYMENTS = "ADMIN - PAYMENTS";
+  public static final String ROOT_TAG_ADMIN_NOTIFICATIONS = "ADMIN - NOTIFICATIONS";
 
   // ===== IoT Module Tags =====
   public static final String ROOT_TAG_IOT = "IOT";
