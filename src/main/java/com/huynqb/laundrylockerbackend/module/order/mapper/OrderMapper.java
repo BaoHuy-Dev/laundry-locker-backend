@@ -34,6 +34,8 @@ public interface OrderMapper {
   @Mapping(target = "lockerCode", source = "locker.code")
   @Mapping(target = "sendBoxNumber", source = "sendBox.boxNumber")
   @Mapping(target = "receiveBoxNumber", source = "receiveBox.boxNumber")
+  @Mapping(target = "sendBoxId", source = "sendBox.id")
+  @Mapping(target = "receiveBoxId", source = "receiveBox.id")
   @Mapping(target = "sendBoxNumbers", source = "sendBoxes", qualifiedByName = "boxesToNumbers")
   @Mapping(
       target = "receiveBoxNumbers",

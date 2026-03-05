@@ -2,6 +2,7 @@ package com.huynqb.laundrylockerbackend.module.user.dto.response;
 
 import com.huynqb.laundrylockerbackend.module.user.enums.AuthProvider;
 import java.time.LocalDateTime;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,4 +28,7 @@ public class UserResponse {
   private Boolean emailVerified;
   private Boolean phoneVerified;
   private LocalDateTime joinDate;
+
+  /** User roles (e.g., USER, ADMIN, PARTNER) */
+  private Set<String> roles;
 }

@@ -12,7 +12,9 @@ import com.huynqb.laundrylockerbackend.module.payment.model.Payment;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +34,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final NotificationMapper notificationMapper;
   private final WebSocketNotificationService webSocketNotificationService;
+  private final FcmPushNotificationService fcmPushNotificationService;
   private final UserRepository userRepository;
 
   // ==================== Create Notifications ====================
@@ -170,6 +173,8 @@ public class NotificationService {
         userId, NotificationStatus.READ, NotificationStatus.UNREAD);
   }
 
+  // ==================== Delete Notifications ====================
+
   /** Delete a notification. */
   @Transactional
   public void deleteNotification(Long notificationId, Long userId) {
@@ -185,6 +190,25 @@ public class NotificationService {
 
     notificationRepository.delete(notification);
     log.info("Notification {} deleted by user {}", notificationId, userId);
+  }
+
+  /** Delete all notifications for a user. */
+  @Transactional
+  public void deleteAllNotifications(Long userId) {
+    notificationRepository.deleteByUserId(userId);
+    log.info("All notifications deleted for user {}", userId);
+  }
+
+  // ==================== Batch Operations ====================
+
+  /** Mark a batch of notifications as read. */
+  @Transactional
+  public int markBatchAsRead(List<Long> notificationIds, Long userId) {
+    int count =
+        notificationRepository.markBatchAsRead(
+            notificationIds, userId, NotificationStatus.READ, NotificationStatus.UNREAD);
+    log.info("Marked {} notifications as read for user {}", count, userId);
+    return count;
   }
 
   // ==================== Public Create Method (for Scheduler) ====================
@@ -246,7 +270,25 @@ public class NotificationService {
             .createdAt(LocalDateTime.now())
             .build();
 
-    return notificationRepository.save(notification);
+    Notification saved = notificationRepository.save(notification);
+
+    // Also send FCM push notification
+    try {
+      Map<String, String> data = new HashMap<>();
+      data.put("notificationId", saved.getId().toString());
+      data.put("type", type.name());
+      if (referenceId != null) {
+        data.put("referenceId", referenceId.toString());
+      }
+      if (referenceType != null) {
+        data.put("referenceType", referenceType);
+      }
+      fcmPushNotificationService.sendToUser(user.getId(), title, message, data);
+    } catch (Exception e) {
+      log.warn("Failed to send FCM push to user {}: {}", user.getId(), e.getMessage());
+    }
+
+    return saved;
   }
 
   private String getOrderStatusTitle(OrderStatus status) {

@@ -87,6 +87,16 @@ public class SecurityConfig {
   // WebSocket endpoints (must be public for initial connection)
   private static final String[] WEBSOCKET_ENDPOINTS = {"/ws/**", "/ws"};
 
+  // IoT endpoints that use PIN for authentication (no login required)
+  private static final String[] IOT_PUBLIC_ENDPOINTS = {
+    "/api/iot/verify-pin",
+    "/api/iot/unlock",
+    "/api/iot/unlock-with-code",
+    "/api/iot/box-status",
+    "/api/iot/test-mqtt",
+    "/api/orders/pin/**"
+  };
+
   // ==================== Security Filter Chains ====================
 
   /**
@@ -170,6 +180,9 @@ public class SecurityConfig {
         .permitAll()
         // WebSocket endpoints (public for initial connection)
         .requestMatchers(WEBSOCKET_ENDPOINTS)
+        .permitAll()
+        // IoT endpoints that use PIN for authentication
+        .requestMatchers(IOT_PUBLIC_ENDPOINTS)
         .permitAll()
 
         // Role-based access control

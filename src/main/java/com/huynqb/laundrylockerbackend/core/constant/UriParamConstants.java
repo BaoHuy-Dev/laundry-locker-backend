@@ -24,6 +24,7 @@ public class UriParamConstants {
   public static final String ROOT_URI_ADMIN_STORES = "/api/admin/stores";
   public static final String ROOT_URI_ADMIN_SERVICES = "/api/admin/services";
   public static final String ROOT_URI_ADMIN_LOCKERS = "/api/admin/lockers";
+  public static final String ROOT_URI_ADMIN_NOTIFICATIONS = "/api/admin/notifications";
 
   // ===== Common Path Variables =====
   public static final String HOME = "/";
@@ -42,6 +43,9 @@ public class UriParamConstants {
   // ===== Phone OTP Authentication =====
   public static final String PHONE_LOGIN = "/phone-login";
   public static final String COMPLETE_REGISTRATION = "/complete-registration";
+
+  // ===== Kiosk Quick Register =====
+  public static final String KIOSK_QUICK_REGISTER = "/kiosk/quick-register";
 
   // ===== Email OTP Authentication =====
   public static final String EMAIL_SEND_OTP = "/email/send-otp";
@@ -81,7 +85,9 @@ public class UriParamConstants {
   public static final String NOTIFICATIONS_UNREAD_COUNT = "/unread/count";
   public static final String NOTIFICATIONS_READ = "/{id}/read";
   public static final String NOTIFICATIONS_READ_ALL = "/read-all";
+  public static final String NOTIFICATIONS_READ_BATCH = "/read-batch";
   public static final String NOTIFICATIONS_DELETE = "/{id}";
+  public static final String NOTIFICATIONS_DELETE_ALL = "/all";
 
   // ===== Payment Endpoints =====
   public static final String PAYMENT_CREATE = "/create";
@@ -262,6 +268,9 @@ public class UriParamConstants {
   public static final String LOYALTY_EXPIRING_POINTS = "/points/expiring";
   public static final String LOYALTY_TRANSFER_POINTS = "/points/transfer";
 
+  // ===== User - Promotions (public) =====
+  public static final String ROOT_URI_PROMOTIONS = "/api/promotions";
+
   // ===== Admin - System & Promotions =====
   public static final String ROOT_URI_ADMIN_PROMOTIONS = "/api/admin/promotions";
   public static final String ADMIN_SYSTEM_HEALTH = "/system/health";
@@ -271,4 +280,8 @@ public class UriParamConstants {
   public static final String ADMIN_IOT_DASHBOARD = "/iot/dashboard";
   public static final String ADMIN_PROMOTION_BY_ID = "/{promotionId}";
   public static final String ADMIN_PROMOTION_VALIDATE = "/validate/{code}";
+
+  // ===== Admin Notification Endpoints =====
+  public static final String ADMIN_NOTIFICATION_BROADCAST = "/broadcast";
+  public static final String ADMIN_NOTIFICATION_SEND = "/send";
 }

@@ -69,7 +69,11 @@ import com.huynqb.laundrylockerbackend.module.user.repository.RoleRepository;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -137,6 +141,7 @@ public class SampleDataLoader {
   private int orderCodeCounter = 0;
 
   @Bean
+  @org.springframework.core.annotation.Order(20) // Run after AdminBootstrapConfig (Order 10)
   @Profile({"dev", "docker", "azure"})
   public CommandLineRunner loadSampleData() {
     return args -> {
@@ -470,6 +475,14 @@ public class SampleDataLoader {
             "0900000006",
             pwd,
             Set.of(userRole, partnerRole)));
+    users.add(
+        createUser(
+            "nqbhuy2004nt@gmail.com",
+            "Huy",
+            "Nguyễn Quốc Bảo",
+            "0900000007",
+            pwd,
+            Set.of(userRole, partnerRole)));
 
     // Customers (15)
     users.add(
@@ -565,7 +578,8 @@ public class SampleDataLoader {
       "partner.huong@gmail.com",
       "partner.nam@gmail.com",
       "partner.thao@gmail.com",
-      "partner.binh@gmail.com"
+      "partner.binh@gmail.com",
+      "nqbhuy2004nt@gmail.com"
     };
     String[][] businessInfo = {
       {
@@ -607,6 +621,14 @@ public class SampleDataLoader {
         "200 Lê Văn Việt, Quận 9",
         "APPROVED",
         "65.00"
+      },
+      {
+        "Huy Laundry Service - Quận Tân Bình",
+        "BRN-TB-001",
+        "TAX-TB-001",
+        "500 Cộng Hòa, Quận Tân Bình",
+        "APPROVED",
+        "70.00"
       }
     };
 
@@ -615,6 +637,14 @@ public class SampleDataLoader {
       String[] info = businessInfo[i];
       PartnerStatus status =
           "APPROVED".equals(info[4]) ? PartnerStatus.APPROVED : PartnerStatus.PENDING;
+
+      // Check if partner already exists for this user
+      Optional<Partner> existingPartner = partnerRepository.findByUserId(user.getId());
+      if (existingPartner.isPresent()) {
+        partners.add(existingPartner.get());
+        continue;
+      }
+
       Partner partner =
           partnerRepository.save(
               Partner.builder()
@@ -641,6 +671,14 @@ public class SampleDataLoader {
       int idx = 6 + i; // Start from customer.huy
       if (idx >= allUsers.size()) break;
       User customer = allUsers.get(idx);
+
+      // Check if partner already exists for this user
+      Optional<Partner> existingPartner = partnerRepository.findByUserId(customer.getId());
+      if (existingPartner.isPresent()) {
+        partners.add(existingPartner.get());
+        continue;
+      }
+
       Partner partner =
           partnerRepository.save(
               Partner.builder()

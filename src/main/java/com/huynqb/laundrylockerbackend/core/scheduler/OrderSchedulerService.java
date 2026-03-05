@@ -205,7 +205,7 @@ public class OrderSchedulerService {
    * reminder notification to customer
    */
   @Scheduled(fixedRateString = "${app.scheduler.reminder-rate-ms:3600000}") // Default: 1 hour
-  @Transactional(readOnly = true)
+  @Transactional
   public void sendPickupReminders() {
     log.debug("Running pickup reminder job...");
 

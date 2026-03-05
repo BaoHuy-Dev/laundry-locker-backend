@@ -74,6 +74,39 @@ public class ServiceController {
     return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
   }
 
+  /**
+   * Get services by locker ID. This endpoint is designed for Kiosk app which only knows the Locker
+   * ID from environment config.
+   */
+  @Operation(
+      summary = "Get Services By Locker",
+      description =
+          "Retrieve services available at the store where the locker is located. "
+              + "Designed for Kiosk app that only has lockerId from environment config.")
+  @GetMapping(params = "lockerId")
+  public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByLocker(
+      @RequestParam Long lockerId) {
+    List<ServiceResponse> services = laundryServiceService.getServicesByLocker(lockerId);
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
+  }
+
+  /**
+   * Get services by locker ID and category. This endpoint is designed for Kiosk app to get services
+   * filtered by category (STORAGE or LAUNDRY).
+   */
+  @Operation(
+      summary = "Get Services By Locker and Category",
+      description =
+          "Retrieve services at a locker's store filtered by category. "
+              + "Designed for Kiosk app. Category: STORAGE = Dịch vụ gửi đồ, LAUNDRY = Dịch vụ giặt")
+  @GetMapping(params = {"lockerId", "category"})
+  public ResponseEntity<ApiResponse<List<ServiceResponse>>> getServicesByLockerAndCategory(
+      @RequestParam Long lockerId, @RequestParam ServiceCategory category) {
+    List<ServiceResponse> services =
+        laundryServiceService.getServicesByLockerAndCategory(lockerId, category);
+    return ResponseEntity.ok(responseHelper.success(services, "SERVICES_RETRIEVED"));
+  }
+
   /** Get service by ID. */
   @Operation(summary = "Get Service By ID", description = "Retrieve service details by ID")
   @GetMapping(UriParamConstants.BY_ID)

@@ -36,6 +36,7 @@ public class IoTService {
   private final BoxRepository boxRepository;
   private final NotificationService notificationService;
   private final IoTMapper ioTMapper;
+  private final LockerMqttService lockerMqttService;
 
   /** Verify PIN code for a specific box. Returns order information if PIN is valid. */
   @Transactional(readOnly = true)
@@ -92,6 +93,15 @@ public class IoTService {
 
     // Generate unlock token for IoT device
     String unlockToken = UUID.randomUUID().toString();
+
+    // Publish MQTT unlock command to ESP8266
+    try {
+      String deviceId = box.getLocker().getCode(); // Use locker code as device ID
+      lockerMqttService.sendUnlockCommand(deviceId, box.getBoxNumber());
+    } catch (Exception e) {
+      log.error("Failed to send MQTT unlock command for box {}: {}", box.getId(), e.getMessage());
+      // Don't fail the unlock response - MQTT is best-effort
+    }
 
     log.info("Box {} unlocked for order {}", box.getId(), order.getId());
 

@@ -10,6 +10,7 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegi
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.KioskQuickRegisterRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
@@ -142,6 +143,7 @@ public class AuthService {
     User newUser =
         User.builder()
             .phoneNumber(phoneNumber)
+            .email(request.getEmail())
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
             .name(request.getFirstName() + " " + request.getLastName())
@@ -160,7 +162,7 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
   }
 
   // ===== Email OTP Authentication =====
@@ -249,6 +251,7 @@ public class AuthService {
     User newUser =
         User.builder()
             .email(email)
+            .phoneNumber(request.getPhoneNumber())
             .firstName(request.getFirstName())
             .lastName(request.getLastName())
             .name(request.getFirstName() + " " + request.getLastName())
@@ -266,7 +269,62 @@ public class AuthService {
     String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
     String refreshToken = createRefreshToken(savedUser);
 
-    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
+  }
+
+  // ===== Kiosk Quick Registration =====
+
+  /**
+   * Quick register from kiosk. Creates user with default info. User can update profile later on
+   * mobile app.
+   *
+   * @param request Kiosk quick register request with tempToken
+   * @return Authentication response with JWT tokens
+   */
+  @Transactional
+  public AuthResponse kioskQuickRegister(KioskQuickRegisterRequest request) {
+    // 1. Validate tempToken → get identifier (phone or email) from Redis
+    String identifier = tokenService.getIdentifierByTempToken(request.getTempToken());
+    if (identifier == null) {
+      throw new AuthenticationException(E_AUTH008);
+    }
+    tokenService.deleteTempToken(request.getTempToken());
+
+    // 2. Determine identifier type
+    boolean isEmail = identifier.contains("@");
+    boolean isPhone = !isEmail;
+
+    // 3. Check if user already exists
+    if (isEmail && userRepository.findByEmail(identifier).isPresent()) {
+      throw new AuthenticationException(E_AUTH005);
+    }
+    if (isPhone && userRepository.findByPhoneNumber(identifier).isPresent()) {
+      throw new AuthenticationException(E_AUTH005);
+    }
+
+    // 4. Create user with minimal info
+    User newUser =
+        User.builder()
+            .email(isEmail ? identifier : null)
+            .phoneNumber(isPhone ? identifier : null)
+            .firstName("Khách")
+            .lastName("")
+            .name("Khách")
+            .birthday(null)
+            .provider(isPhone ? AuthProvider.PHONE : AuthProvider.EMAIL)
+            .emailVerified(isEmail)
+            .phoneVerified(isPhone)
+            .roles(getDefaultRoles())
+            .build();
+
+    User savedUser = userRepository.save(newUser);
+    log.info("Kiosk quick register: {}", identifier);
+
+    // 5. Generate JWT tokens
+    String accessToken = jwtTokenProvider.generateTokenFromUser(savedUser);
+    String refreshToken = createRefreshToken(savedUser);
+
+    return authMapper.toAuthResponse(accessToken, refreshToken, jwtExpirationMs / 1000, savedUser);
   }
 
   // ===== Token Management =====
@@ -296,7 +354,8 @@ public class AuthService {
 
     log.info("Access token refreshed for user ID: {}", user.getId());
 
-    return authMapper.toAuthResponse(newAccessToken, refreshTokenValue, jwtExpirationMs / 1000);
+    return authMapper.toAuthResponse(
+        newAccessToken, refreshTokenValue, jwtExpirationMs / 1000, user);
   }
 
   /**

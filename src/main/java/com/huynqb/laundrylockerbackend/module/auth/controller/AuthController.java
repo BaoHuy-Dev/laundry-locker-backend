@@ -10,6 +10,7 @@ import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailCompleteRegi
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailSendOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.EmailVerifyOtpRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.ForgotPasswordRequest;
+import com.huynqb.laundrylockerbackend.module.auth.dto.request.KioskQuickRegisterRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.LogoutRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.PhoneLoginRequest;
 import com.huynqb.laundrylockerbackend.module.auth.dto.request.RefreshTokenRequest;
@@ -74,6 +75,23 @@ public class AuthController {
 
     return ResponseEntity.ok(
         responseHelper.success(authResponse, MessageConstants.AUTH_REGISTRATION_COMPLETE));
+  }
+
+  // ===== Kiosk Quick Register Endpoint =====
+
+  /** Kiosk quick register - create user with minimal info, no personal details required */
+  @Operation(
+      summary = "Kiosk Quick Register",
+      description =
+          "Quick register for kiosk users - only needs tempToken, no personal info required")
+  @PostMapping(UriParamConstants.KIOSK_QUICK_REGISTER)
+  public ResponseEntity<ApiResponse<AuthResponse>> kioskQuickRegister(
+      @Valid @RequestBody KioskQuickRegisterRequest request) {
+
+    AuthResponse response = authService.kioskQuickRegister(request);
+
+    return ResponseEntity.ok(
+        responseHelper.success(response, MessageConstants.AUTH_REGISTRATION_COMPLETE));
   }
 
   // ===== Email OTP Authentication Endpoints =====

@@ -212,6 +212,12 @@
             <version>9.4.2</version>
         </dependency>
 
+        <!-- MQTT Client for IoT locker control -->
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.mqttv5.client</artifactId>
+            <version>1.2.5</version>
+        </dependency>
 
     </dependencies>
 

@@ -42,6 +42,8 @@ public class IoTController {
   private final StaffAccessCodeService staffAccessCodeService;
   private final JwtTokenProvider jwtTokenProvider;
   private final ResponseHelper responseHelper;
+  private final com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService
+      lockerMqttService;
 
   /** Verify PIN code for a box. */
   @Operation(
@@ -109,5 +111,20 @@ public class IoTController {
   private Long extractUserId(String authHeader) {
     String token = authHeader.replace("Bearer ", "");
     return jwtTokenProvider.getUserIdFromToken(token);
+  }
+
+  @org.springframework.web.bind.annotation.GetMapping("/test-mqtt")
+  public ResponseEntity<String> testMqtt() {
+    try {
+      lockerMqttService.sendUnlockCommand("LOC-01-001", 1);
+      return ResponseEntity.ok("Successfully sent MQTT command!");
+    } catch (Exception e) {
+      return ResponseEntity.internalServerError()
+          .body(
+              "MQTT Error: "
+                  + e.getMessage()
+                  + " | Cause: "
+                  + (e.getCause() != null ? e.getCause().getMessage() : "none"));
+    }
   }
 }

@@ -1,5 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.user.service;
 
+import com.huynqb.laundrylockerbackend.module.notification.model.FcmToken;
+import com.huynqb.laundrylockerbackend.module.notification.repository.FcmTokenRepository;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.ChangePasswordRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.FcmTokenRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.UpdateProfileRequest;
@@ -7,6 +9,7 @@ import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +25,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
+  private final FcmTokenRepository fcmTokenRepository;
 
   /** Update user profile. */
   @Transactional
@@ -109,9 +113,28 @@ public class UserService {
             .findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-    // TODO: Store FCM token in a separate table for multi-device support
-    // For now, we can store in user or a dedicated FCM token entity
-    // This is a placeholder implementation
+    // Upsert: if token already exists for this user, update it; otherwise create new
+    Optional<FcmToken> existingToken = fcmTokenRepository.findByToken(request.getFcmToken());
+
+    if (existingToken.isPresent()) {
+      FcmToken fcmToken = existingToken.get();
+      // If token belongs to another user, reassign it (device changed user)
+      if (!fcmToken.getUser().getId().equals(userId)) {
+        fcmToken.setUser(user);
+      }
+      fcmToken.setDeviceType(request.getDeviceType());
+      fcmToken.setDeviceId(request.getDeviceId());
+      fcmTokenRepository.save(fcmToken);
+    } else {
+      FcmToken fcmToken =
+          FcmToken.builder()
+              .user(user)
+              .token(request.getFcmToken())
+              .deviceType(request.getDeviceType())
+              .deviceId(request.getDeviceId())
+              .build();
+      fcmTokenRepository.save(fcmToken);
+    }
 
     log.info("FCM token registered for user: {}", userId);
   }
@@ -121,8 +144,7 @@ public class UserService {
   public void removeFcmToken(Long userId, String fcmToken) {
     log.info("Removing FCM token for user: {}", userId);
 
-    // TODO: Remove FCM token from storage
-    // This is a placeholder implementation
+    fcmTokenRepository.deleteByUserIdAndToken(userId, fcmToken);
 
     log.info("FCM token removed for user: {}", userId);
   }

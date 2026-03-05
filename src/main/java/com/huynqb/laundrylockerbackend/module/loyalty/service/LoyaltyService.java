@@ -106,7 +106,7 @@ public class LoyaltyService {
   }
 
   /** Get loyalty summary (points + all stamp cards). */
-  @Transactional(readOnly = true)
+  @Transactional
   public LoyaltySummaryResponse getLoyaltySummary(Long userId) {
     LoyaltyAccount account = getOrCreateAccount(userId);
     List<StampCard> stampCards = stampCardRepository.findByUserId(userId);
@@ -576,7 +576,7 @@ public class LoyaltyService {
   }
 
   /** Get available rewards with user's current points. */
-  @Transactional(readOnly = true)
+  @Transactional
   public RewardsResponse getAvailableRewards(Long userId) {
     LoyaltyAccount account = getOrCreateAccount(userId);
     int currentPoints = account.getPointsBalance().intValue();
@@ -619,7 +619,7 @@ public class LoyaltyService {
   }
 
   /** Get points expiring soon. */
-  @Transactional(readOnly = true)
+  @Transactional
   public ExpiringPointsResponse getExpiringPoints(Long userId) {
     LoyaltyAccount account = getOrCreateAccount(userId);
     int currentBalance = account.getPointsBalance().intValue();

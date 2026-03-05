@@ -1,6 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.auth.dto.response;
 
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,4 +38,7 @@ public class PhoneLoginResponse {
 
   /** User information (only for existing users) */
   private UserResponse userInfo;
+
+  /** User roles (e.g., USER, ADMIN, PARTNER) - only for existing users */
+  private Set<String> roles;
 }

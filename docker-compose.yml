@@ -5,6 +5,14 @@
 #   1. Copy .env.example to .env: cp .env.example .env
 #   2. Edit .env with your actual values
 #   3. Run: docker-compose up -d
+#
+# Troubleshooting - Sample Data Not Loading:
+#   If sample data is not loaded after starting containers:
+#   1. Check logs: docker logs laundry-locker-backend
+#   2. Force reload data: Set FORCE_RELOAD_DATA=true in .env
+#   3. Clean restart: docker-compose down -v && docker-compose up -d
+#      (Warning: This deletes all data!)
+#   4. Manual reload: Set LOAD_SAMPLE_DATA=true in .env and restart app
 # ============================================
 
 services:
@@ -56,6 +64,28 @@ services:
       retries: 5
 
   # ============================================
+  # MQTT Broker (Mosquitto)
+  # ============================================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: laundry-locker-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - laundry-network
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/#' -C 1 -W 3 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
   # Spring Boot Application
   # ============================================
   app:
@@ -86,6 +116,9 @@ services:
       # Application URLs
       APP_FRONTEND_URL: ${FRONTEND_URL}
       APP_BACKEND_URL: ${BACKEND_URL}
+
+      # CORS Configuration
+      APP_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
 
       # Email Configuration
       SPRING_MAIL_HOST: ${MAIL_HOST}
@@ -126,6 +159,31 @@ services:
       APP_LOAD_SAMPLE_DATA: ${LOAD_SAMPLE_DATA:-true}
       APP_DATA_FORCE_RELOAD: ${FORCE_RELOAD_DATA:-false}
 
+      # Super Admin Bootstrap
+      APP_ADMIN_BOOTSTRAP_ENABLED: ${ADMIN_BOOTSTRAP_ENABLED:-true}
+      APP_ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@laundrylocker.com}
+      APP_ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-Admin@123456}
+      APP_ADMIN_BOOTSTRAP_NAME: ${ADMIN_BOOTSTRAP_NAME:-Super Admin}
+
+      # MQTT Configuration
+      MQTT_BROKER_URL: tcp://mosquitto:1883
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+
+      # Scheduler Configuration
+      APP_SCHEDULER_ORDER_TIMEOUT: ${SCHEDULER_ORDER_TIMEOUT:-30}
+      APP_SCHEDULER_BOX_RELEASE_DELAY: ${SCHEDULER_BOX_RELEASE_DELAY:-5}
+      APP_SCHEDULER_PICKUP_REMINDER: ${SCHEDULER_PICKUP_REMINDER:-24}
+
+      # Staff Configuration
+      APP_STAFF_MASTER_PIN: ${STAFF_MASTER_PIN:-999999}
+
+      # Order Configuration
+      APP_ORDER_PICKUP_HOURS_LIMIT: ${ORDER_PICKUP_HOURS_LIMIT:-24}
+      APP_ORDER_OVERTIME_FEE: ${ORDER_OVERTIME_FEE:-500}
+      APP_ORDER_MAX_OVERTIME_FEE: ${ORDER_MAX_OVERTIME_FEE:-50000}
+      APP_ORDER_MAX_OVERTIME_PERCENT: ${ORDER_MAX_OVERTIME_PERCENT:-50}
+
       # JVM Options
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
@@ -133,6 +191,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mosquitto:
         condition: service_healthy
     networks:
       - laundry-network
@@ -147,6 +207,10 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_log:
     driver: local
 
 # ============================================
