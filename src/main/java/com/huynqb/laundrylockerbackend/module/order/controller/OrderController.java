@@ -137,6 +137,19 @@ public class OrderController {
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_COMPLETED"));
   }
 
+  /** Complete Storage order - Customer picks up storage items. */
+  @Operation(
+      summary = "Pickup Storage Order",
+      description = "Customer remotely opens locker to pick up storage items")
+  @PostMapping("/{orderId}/pickup-storage")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderResponse>> pickupStorageOrder(
+      @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderResponse response = orderService.pickupStorageOrder(orderId, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "STORAGE_ORDER_PICKED_UP"));
+  }
+
   /** Checkout an order (payment). */
   @Operation(
       summary = "Checkout Order",

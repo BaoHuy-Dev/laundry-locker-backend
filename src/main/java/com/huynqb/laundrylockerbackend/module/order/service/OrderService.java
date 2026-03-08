@@ -2,6 +2,7 @@ package com.huynqb.laundrylockerbackend.module.order.service;
 
 import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
+import com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
 import com.huynqb.laundrylockerbackend.module.laundry.repository.LaundryServiceRepository;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
@@ -63,6 +64,8 @@ public class OrderService {
   private final PaymentRepository paymentRepository;
   private final UserRepository userRepository;
   private final PromotionRepository promotionRepository;
+  private final LockerMqttService lockerMqttService;
+
   private final OrderMapper orderMapper;
   private final PaymentMapper paymentMapper;
   private final NotificationService notificationService;
@@ -330,7 +333,12 @@ public class OrderService {
   private OrderStatusResponse buildOrderStatusResponse(Order order) {
     // Check if paid
     List<Payment> payments = paymentRepository.findByOrderId(order.getId());
-    boolean isPaid = payments.stream().anyMatch(p -> p.getStatus() == PaymentStatus.COMPLETED);
+    BigDecimal totalPaid =
+        payments.stream()
+            .filter(p -> p.getStatus() == PaymentStatus.COMPLETED)
+            .map(Payment::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    boolean isPaid = totalPaid.compareTo(order.getTotalPrice()) >= 0;
 
     // Get box number based on status
     Integer boxNumber = null;
@@ -469,6 +477,100 @@ public class OrderService {
     // Send notification
     notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.COMPLETED);
 
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  @Transactional
+  public OrderResponse pickupStorageOrder(Long orderId, Long userId) {
+    log.info("Pickup STORAGE order: {} by customer: {}", orderId, userId);
+
+    Order order = findOrderById(orderId);
+
+    // Validate order belongs to user
+    if (!order.getSender().getId().equals(userId)) {
+      throw new OrderException("E_ORDER009"); // Order does not belong to user
+    }
+
+    // Validate order is STORAGE type
+    if (order.getType() != com.huynqb.laundrylockerbackend.module.order.enums.OrderType.STORAGE) {
+      throw new OrderException("E_ORDER002"); // Generic invalid action or new error code
+    }
+
+    // Validate status - must be WAITING (items in locker, waiting for collection)
+    validateOrderStatus(order.getStatus(), List.of(OrderStatus.WAITING), "E_ORDER010");
+
+    // ---- OVERTIME PENALTY LOGIC ----
+    if (order.getIntendedReceiveAt() != null) {
+      LocalDateTime deadlineWithGrace = order.getIntendedReceiveAt().plusMinutes(15);
+      if (LocalDateTime.now().isAfter(deadlineWithGrace)) {
+        long minutesOverdue =
+            java.time.Duration.between(order.getIntendedReceiveAt(), LocalDateTime.now())
+                .toMinutes();
+        long hoursOverdue = (long) Math.ceil(minutesOverdue / 60.0);
+        if (hoursOverdue < 1) hoursOverdue = 1;
+
+        BigDecimal penaltyFee =
+            BigDecimal.valueOf(10000L)
+                .multiply(BigDecimal.valueOf(hoursOverdue)); // 10k VND per hour
+
+        if (penaltyFee.compareTo(order.getExtraFee()) > 0) {
+          order.setExtraFee(penaltyFee);
+          BigDecimal newTotal =
+              order
+                  .getStoragePrice()
+                  .add(order.getReservationFee())
+                  .add(order.getShippingFee())
+                  .add(penaltyFee)
+                  .subtract(order.getDiscount());
+          order.setTotalPrice(newTotal);
+          orderRepository.save(order);
+        }
+      }
+    }
+
+    // Verify payment is complete (including any penalty)
+    List<Payment> payments = paymentRepository.findByOrderId(order.getId());
+    BigDecimal totalPaid =
+        payments.stream()
+            .filter(p -> p.getStatus() == PaymentStatus.COMPLETED)
+            .map(Payment::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    if (totalPaid.compareTo(order.getTotalPrice()) < 0) {
+      throw new OrderException(
+          "E_ORDER_OVERTIME", "Đã lố giờ gửi, vui lòng thanh toán phụ phí mở tủ");
+    }
+    // ---- END OVERTIME PENALTY LOGIC ----
+
+    Box boxToUnlock = order.getSendBox();
+    if (boxToUnlock == null && order.getSendBoxes() != null && !order.getSendBoxes().isEmpty()) {
+      boxToUnlock = order.getSendBoxes().iterator().next();
+    }
+
+    if (boxToUnlock != null) {
+      // Publish MQTT unlock command to ESP8266
+      try {
+        String deviceId = boxToUnlock.getLocker().getCode(); // Use locker code as device ID
+        lockerMqttService.sendUnlockCommand(deviceId, boxToUnlock.getBoxNumber());
+      } catch (Exception e) {
+        log.error(
+            "Failed to send MQTT unlock command for box {}: {}",
+            boxToUnlock.getId(),
+            e.getMessage());
+        // Don't fail the unlock response - MQTT is best-effort
+      }
+      releaseBox(boxToUnlock);
+    }
+
+    OrderStatus oldStatus = order.getStatus();
+    order.setStatus(OrderStatus.COMPLETED);
+    order.setCompletedAt(LocalDateTime.now());
+    order.setPinCode(null);
+
+    Order savedOrder = orderRepository.save(order);
+    log.info("STORAGE order {} completed by customer", orderId);
+
+    notificationService.sendOrderStatusNotification(savedOrder, oldStatus, OrderStatus.COMPLETED);
     return orderMapper.toResponse(savedOrder);
   }
 

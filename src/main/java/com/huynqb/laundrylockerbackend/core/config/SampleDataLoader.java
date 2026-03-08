@@ -896,6 +896,27 @@ public class SampleDataLoader {
       lockers.add(createLockerWithBoxes(code, name, store, status, sizes));
     }
 
+    // Add 15 extra empty boxes to the first locker for testing
+    if (!lockers.isEmpty()) {
+      Locker firstLocker = lockers.get(0);
+      BoxSize[] extraSizes = {
+        BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL,
+        BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM,
+        BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE
+      };
+      for (int i = 0; i < extraSizes.length; i++) {
+        boxRepository.save(
+            Box.builder()
+                .locker(firstLocker)
+                .boxNumber(7 + i) // Start after existing 6 boxes
+                .size(extraSizes[i])
+                .status(BoxStatus.AVAILABLE)
+                .isActive(true)
+                .build());
+      }
+      log.info("   ✓ Added 15 extra boxes to first locker: {}", firstLocker.getCode());
+    }
+
     return lockers;
   }
 

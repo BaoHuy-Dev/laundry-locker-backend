@@ -1,7 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.partner.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StaffCodeUnlockRequest {
 
-  @NotNull(message = "Order ID is required")
+  /** Optional: If null, the order will be derived from the access code. */
   private Long orderId;
 
   @NotBlank(message = "Access code is required")

@@ -13,6 +13,7 @@ import com.huynqb.laundrylockerbackend.module.payment.mapper.PaymentMapper;
 import com.huynqb.laundrylockerbackend.module.payment.model.Payment;
 import com.huynqb.laundrylockerbackend.module.payment.repository.PaymentRepository;
 import com.huynqb.laundrylockerbackend.module.payment.util.PaymentUtils;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,7 +40,8 @@ public class PaymentService {
 
   // Valid order statuses for online payment
   private static final List<OrderStatus> PAYABLE_STATUSES =
-      List.of(OrderStatus.RETURNED, OrderStatus.READY);
+      List.of(
+          OrderStatus.INITIALIZED, OrderStatus.WAITING, OrderStatus.RETURNED, OrderStatus.READY);
 
   /**
    * Create online payment and get payment URL.
@@ -58,14 +60,21 @@ public class PaymentService {
     // Find and validate order
     Order order = findOrderById(request.getOrderId());
     validateOrderForPayment(order);
-    checkExistingPayment(order.getId());
+    checkExistingPayment(order);
+
+    // Calculate remaining amount
+    BigDecimal totalPaid = calculateTotalPaid(order.getId());
+    BigDecimal remainingAmount = order.getTotalPrice().subtract(totalPaid);
+    if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new PaymentException("E_PAYMENT003", "Order already fully paid");
+    }
 
     // Create payment record
     Payment payment =
         Payment.builder()
             .order(order)
             .customer(order.getSender())
-            .amount(order.getTotalPrice())
+            .amount(remainingAmount)
             .method(request.getPaymentMethod())
             .status(PaymentStatus.PENDING)
             .referenceId(UUID.randomUUID().toString())
@@ -225,13 +234,18 @@ public class PaymentService {
     }
   }
 
-  private void checkExistingPayment(Long orderId) {
-    paymentRepository
-        .findFirstByOrderIdAndStatus(orderId, PaymentStatus.COMPLETED)
-        .ifPresent(
-            p -> {
-              throw new PaymentException("E_PAYMENT003", "Order already paid");
-            });
+  private BigDecimal calculateTotalPaid(Long orderId) {
+    return paymentRepository.findByOrderId(orderId).stream()
+        .filter(p -> p.getStatus() == PaymentStatus.COMPLETED)
+        .map(Payment::getAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  private void checkExistingPayment(Order order) {
+    BigDecimal totalPaid = calculateTotalPaid(order.getId());
+    if (totalPaid.compareTo(order.getTotalPrice()) >= 0) {
+      throw new PaymentException("E_PAYMENT003", "Order already fully paid");
+    }
   }
 
   private void updatePaymentFromVNPayCallback(
@@ -279,8 +293,10 @@ public class PaymentService {
   }
 
   private void completeOrderPayment(Order order) {
-    order.setStatus(OrderStatus.COMPLETED);
-    orderRepository.save(order);
-    log.info("Order {} marked as COMPLETED after payment", order.getId());
+    // We no longer force order.setStatus(OrderStatus.COMPLETED) here.
+    // Payment completion just marks the payment as COMPLETED.
+    // The actual order flow (e.g., pickupStorageOrder, completeOrder) will handle status
+    // transitions.
+    log.info("Order {} payment completed. Current status: {}", order.getId(), order.getStatus());
   }
 }
