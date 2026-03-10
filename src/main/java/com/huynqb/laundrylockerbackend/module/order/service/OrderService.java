@@ -480,6 +480,78 @@ public class OrderService {
     return orderMapper.toResponse(savedOrder);
   }
 
+  // ===== Reset Order PIN =====
+
+  @Transactional
+  public OrderResponse resetOrderPin(Long orderId, Long userId) {
+    log.info("Resetting PIN for order: {} by user: {}", orderId, userId);
+
+    Order order = findOrderById(orderId);
+
+    // Validate order belongs to user
+    if (!order.getSender().getId().equals(userId)) {
+      throw new OrderException("E_ORDER009"); // Order does not belong to user
+    }
+
+    // Validate status: Only allow resetting PIN if the order is INITIALIZED (user needs to open box
+    // to drop off)
+    // or RETURNED (user needs to open box to pick up)
+    validateOrderStatus(
+        order.getStatus(), List.of(OrderStatus.INITIALIZED, OrderStatus.RETURNED), "E_ORDER010");
+
+    order.setPinCode(generatePinCode());
+    order.setPinCodeIssuedAt(LocalDateTime.now());
+
+    Order savedOrder = orderRepository.save(order);
+    log.info("Order {} PIN reset successfully", orderId);
+
+    return orderMapper.toResponse(savedOrder);
+  }
+
+  // ===== Reorder - Clone from existing completed/canceled order =====
+
+  /**
+   * Create a new order based on an existing completed or canceled order. Clones: type, lockerId,
+   * serviceCategory, serviceIds, customerNote.
+   */
+  @Transactional
+  public OrderResponse reorderFromExisting(Long originalOrderId, Long userId) {
+    log.info("Reordering from order: {} by user: {}", originalOrderId, userId);
+
+    Order originalOrder = findOrderById(originalOrderId);
+
+    // Validate order belongs to user
+    if (!originalOrder.getSender().getId().equals(userId)) {
+      throw new OrderException("E_ORDER009");
+    }
+
+    // Only allow reorder from terminal statuses
+    if (originalOrder.getStatus() != OrderStatus.COMPLETED
+        && originalOrder.getStatus() != OrderStatus.CANCELED) {
+      throw new OrderException("E_ORDER002");
+    }
+
+    // Build CreateOrderRequest from original order
+    List<Long> serviceIds =
+        originalOrder.getOrderDetails().stream()
+            .filter(d -> d.getService() != null)
+            .map(d -> d.getService().getId())
+            .toList();
+
+    CreateOrderRequest request =
+        CreateOrderRequest.builder()
+            .type(originalOrder.getType())
+            .lockerId(originalOrder.getLocker().getId())
+            .serviceCategory(originalOrder.getServiceCategory())
+            .serviceIds(serviceIds.isEmpty() ? null : serviceIds)
+            .customerNote(originalOrder.getCustomerNote())
+            .build();
+
+    OrderResponse newOrder = createOrder(request, userId);
+    log.info("Reorder created: {} from original: {}", newOrder.getId(), originalOrderId);
+    return newOrder;
+  }
+
   @Transactional
   public OrderResponse pickupStorageOrder(Long orderId, Long userId) {
     log.info("Pickup STORAGE order: {} by customer: {}", orderId, userId);

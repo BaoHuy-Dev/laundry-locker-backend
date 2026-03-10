@@ -7,16 +7,20 @@ import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.core.security.jwt.JwtTokenProvider;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CheckoutOrderRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.CreateOrderRequest;
+import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderComplaintRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.request.UpdateOrderWeightRequest;
+import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderComplaintResponse;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderResponse;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderStatusResponse;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
+import com.huynqb.laundrylockerbackend.module.order.service.OrderComplaintService;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderRatingService;
 import com.huynqb.laundrylockerbackend.module.order.service.OrderService;
 import com.huynqb.laundrylockerbackend.module.payment.dto.response.PaymentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +46,7 @@ public class OrderController {
 
   private final OrderService orderService;
   private final OrderRatingService orderRatingService;
+  private final OrderComplaintService orderComplaintService;
   private final JwtTokenProvider jwtTokenProvider;
   private final ResponseHelper responseHelper;
 
@@ -135,6 +140,19 @@ public class OrderController {
     Long userId = extractUserId(authHeader);
     OrderResponse response = orderService.completeOrderByCustomer(orderId, userId);
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_COMPLETED"));
+  }
+
+  /** Reset order PIN - Generate a new PIN code for the order. */
+  @Operation(
+      summary = "Reset Order PIN",
+      description = "Generate a new PIN code for dropping off or picking up items")
+  @PostMapping("/{orderId}/reset-pin")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderResponse>> resetOrderPin(
+      @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderResponse response = orderService.resetOrderPin(orderId, userId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_PIN_RESET"));
   }
 
   /** Complete Storage order - Customer picks up storage items. */
@@ -288,6 +306,63 @@ public class OrderController {
     Long userId = extractUserId(authHeader);
     var response = orderRatingService.getOrderTimeline(orderId, userId);
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_TIMELINE_RETRIEVED"));
+  }
+
+  // ===== ORDER COMPLAINT ENDPOINTS =====
+
+  /** Create a complaint for a completed order. */
+  @Operation(
+      summary = "Create Complaint",
+      description = "Submit a complaint about a completed order")
+  @PostMapping("/{orderId}/complaint")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderComplaintResponse>> createComplaint(
+      @PathVariable Long orderId,
+      @Valid @RequestBody OrderComplaintRequest request,
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderComplaintResponse response =
+        orderComplaintService.createComplaint(orderId, request, userId);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(responseHelper.success(response, "COMPLAINT_CREATED"));
+  }
+
+  /** Get complaints for a specific order. */
+  @Operation(summary = "Get Order Complaints", description = "Get all complaints for an order")
+  @GetMapping("/{orderId}/complaints")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<List<OrderComplaintResponse>>> getOrderComplaints(
+      @PathVariable Long orderId) {
+    List<OrderComplaintResponse> response = orderComplaintService.getOrderComplaints(orderId);
+    return ResponseEntity.ok(responseHelper.success(response, "COMPLAINTS_RETRIEVED"));
+  }
+
+  /** Get all complaints by current user. */
+  @Operation(
+      summary = "Get My Complaints",
+      description = "Get all complaints submitted by current user")
+  @GetMapping("/my-complaints")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<List<OrderComplaintResponse>>> getMyComplaints(
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    List<OrderComplaintResponse> response = orderComplaintService.getMyComplaints(userId);
+    return ResponseEntity.ok(responseHelper.success(response, "MY_COMPLAINTS_RETRIEVED"));
+  }
+
+  /** Reorder - Create a new order based on an existing completed/canceled order. */
+  @Operation(
+      summary = "Reorder",
+      description =
+          "Create a new order by cloning locker, services, and type from a previous order")
+  @PostMapping("/{orderId}/reorder")
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<OrderResponse>> reorderFromExisting(
+      @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    OrderResponse response = orderService.reorderFromExisting(orderId, userId);
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(responseHelper.success(response, "ORDER_REORDERED"));
   }
 
   private Long extractUserId(String authHeader) {

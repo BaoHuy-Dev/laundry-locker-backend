@@ -45,9 +45,6 @@ public class Locker extends BaseModel {
   @Column(nullable = false)
   private String name;
 
-  @Column(length = 1000)
-  private String image;
-
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private LockerStatus status;

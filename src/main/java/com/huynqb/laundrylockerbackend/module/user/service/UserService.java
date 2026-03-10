@@ -2,10 +2,12 @@ package com.huynqb.laundrylockerbackend.module.user.service;
 
 import com.huynqb.laundrylockerbackend.module.notification.model.FcmToken;
 import com.huynqb.laundrylockerbackend.module.notification.repository.FcmTokenRepository;
+import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.ChangePasswordRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.FcmTokenRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.UpdateProfileRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
+import com.huynqb.laundrylockerbackend.module.user.dto.response.UserStatisticsResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
   private final UserRepository userRepository;
+  private final OrderRepository orderRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final FcmTokenRepository fcmTokenRepository;
@@ -157,6 +160,18 @@ public class UserService {
             .findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found: " + userId));
     return userMapper.toResponse(user);
+  }
+
+  /** Get user statistics. */
+  @Transactional(readOnly = true)
+  public UserStatisticsResponse getUserStatistics(Long userId) {
+    log.info("Getting statistics for user: {}", userId);
+    return UserStatisticsResponse.builder()
+        .totalLaundryOrders(orderRepository.countLaundryOrdersByUserId(userId))
+        .totalStorageOrders(orderRepository.countStorageOrdersByUserId(userId))
+        .totalAmountSpent(orderRepository.sumSpendByUserId(userId))
+        .totalVouchersUsed(orderRepository.countVouchersUsedByUserId(userId))
+        .build();
   }
 
   /** Update user avatar. */

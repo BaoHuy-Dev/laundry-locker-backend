@@ -9,8 +9,13 @@ public class PartnerException extends BusinessException {
     super(code, message);
   }
 
+  public PartnerException(String code, org.springframework.http.HttpStatus status, String message) {
+    super(code, status, message);
+  }
+
   public static PartnerException notFound() {
-    return new PartnerException("E_PARTNER001", "Partner not found");
+    return new PartnerException(
+        "E_PARTNER001", org.springframework.http.HttpStatus.NOT_FOUND, "Partner not found");
   }
 
   public static PartnerException alreadyExists() {
