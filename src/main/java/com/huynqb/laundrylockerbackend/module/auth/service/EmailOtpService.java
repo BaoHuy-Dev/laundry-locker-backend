@@ -68,7 +68,8 @@ public class EmailOtpService {
       log.error("Failed to send OTP email to {}: {}", email, e.getMessage());
       // Delete OTP from Redis if email fails
       redisTemplate.delete(key);
-      return false;
+      throw new com.huynqb.laundrylockerbackend.module.auth.exception.AuthenticationException(
+          "Gửi email thất bại (" + e.getMessage() + ").");
     }
   }
 

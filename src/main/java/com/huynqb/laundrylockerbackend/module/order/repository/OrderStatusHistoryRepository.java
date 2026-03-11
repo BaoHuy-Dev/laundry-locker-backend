@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.order.repository;
 
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderStatusHistory;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderStatusHistory;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -5,7 +5,7 @@ import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AuditLogResponse;
-import com.huynqb.laundrylockerbackend.module.admin.entity.AuditLog;
+import com.huynqb.laundrylockerbackend.module.admin.model.AuditLog;
 import com.huynqb.laundrylockerbackend.module.admin.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

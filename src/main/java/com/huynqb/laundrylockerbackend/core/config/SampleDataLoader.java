@@ -1,8 +1,8 @@
 package com.huynqb.laundrylockerbackend.core.config;
 
-import com.huynqb.laundrylockerbackend.module.admin.entity.AuditLog;
-import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
-import com.huynqb.laundrylockerbackend.module.admin.entity.PromotionUsage;
+import com.huynqb.laundrylockerbackend.module.admin.model.AuditLog;
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage;
 import com.huynqb.laundrylockerbackend.module.admin.repository.AuditLogRepository;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionUsageRepository;
@@ -33,12 +33,12 @@ import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationSta
 import com.huynqb.laundrylockerbackend.module.notification.enums.NotificationType;
 import com.huynqb.laundrylockerbackend.module.notification.model.Notification;
 import com.huynqb.laundrylockerbackend.module.notification.repository.NotificationRepository;
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderRating;
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderStatusHistory;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderType;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.order.model.OrderDetail;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderRating;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderStatusHistory;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderDetailRepository;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRatingRepository;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
@@ -50,10 +50,10 @@ import com.huynqb.laundrylockerbackend.module.partner.model.Partner;
 import com.huynqb.laundrylockerbackend.module.partner.model.StaffAccessCode;
 import com.huynqb.laundrylockerbackend.module.partner.repository.PartnerRepository;
 import com.huynqb.laundrylockerbackend.module.partner.repository.StaffAccessCodeRepository;
-import com.huynqb.laundrylockerbackend.module.payment.entity.Refund;
 import com.huynqb.laundrylockerbackend.module.payment.enums.PaymentMethod;
 import com.huynqb.laundrylockerbackend.module.payment.enums.PaymentStatus;
 import com.huynqb.laundrylockerbackend.module.payment.model.Payment;
+import com.huynqb.laundrylockerbackend.module.payment.model.Refund;
 import com.huynqb.laundrylockerbackend.module.payment.repository.PaymentRepository;
 import com.huynqb.laundrylockerbackend.module.payment.repository.RefundRepository;
 import com.huynqb.laundrylockerbackend.module.store.enums.StoreStatus;
@@ -532,6 +532,29 @@ public class SampleDataLoader {
     users.add(
         createUser(
             "customer.cuong@gmail.com", "Cường", "Đỗ Văn", "0901000015", pwd, Set.of(userRole)));
+
+    // ===== Special test user: Trương Nguyễn Thái Bình =====
+    users.add(
+        userRepository
+            .findByEmail("truongnguyenthaibinh1050@gmail.com")
+            .orElseGet(
+                () ->
+                    userRepository.save(
+                        User.builder()
+                            .email("truongnguyenthaibinh1050@gmail.com")
+                            .name("Bình Trương Nguyễn Thái")
+                            .firstName("Bình")
+                            .lastName("Trương Nguyễn Thái")
+                            .phoneNumber("0869371050")
+                            .password(pwd)
+                            .provider(AuthProvider.LOCAL)
+                            .emailVerified(true)
+                            .phoneVerified(true)
+                            .imageUrl(
+                                "https://media.ambito.com/p/49b1b28bd9d1f27d9eb5cbab7bc06ae2/adjuntos/239/imagenes/040/762/0040762648/messi-inter-miamijpg.jpg")
+                            .birthday(java.time.LocalDate.of(2000, 5, 10))
+                            .roles(new HashSet<>(Set.of(userRole)))
+                            .build())));
 
     // Additional regular users (can be assigned as internal staff by Partner)
     users.add(
@@ -1140,6 +1163,7 @@ public class SampleDataLoader {
     User hang = findUserByEmail("customer.hang@gmail.com");
     User longUser = findUserByEmail("customer.long@gmail.com");
     User thu = findUserByEmail("customer.thu@gmail.com");
+    User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
 
     Locker locker1 = allLockers.get(0);
     Locker locker2 = allLockers.get(2);
@@ -1545,6 +1569,312 @@ public class SampleDataLoader {
               premium));
     }
 
+    // ===== Orders for Bình (truongnguyenthaibinh1050) - comprehensive data =====
+    Locker locker4 = allLockers.get(1);
+    Locker locker5 = allLockers.get(3);
+
+    // --- COMPLETED Orders for Bình (8) - various services & dates ---
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            3.5,
+            52000,
+            "Giặt quần áo hàng tuần",
+            -30,
+            -28,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker2,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            2.0,
+            35000,
+            "Giặt đồ công sở cuối tuần",
+            -25,
+            -23,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            1.5,
+            45000,
+            "Giặt hấp vest & sơ mi",
+            -20,
+            -18,
+            storage,
+            premium));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker3,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            5.0,
+            85000,
+            "Giặt chăn mền gia đình",
+            -18,
+            -15,
+            storage,
+            large));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            2.8,
+            48000,
+            "Giặt đồ thể thao & gym",
+            -15,
+            -13,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker2,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            1.2,
+            38000,
+            "Giặt áo dài cao cấp",
+            -12,
+            -10,
+            storage,
+            premium));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            4.0,
+            72000,
+            "Giặt rèm cửa",
+            -10,
+            -8,
+            storage,
+            large));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker3,
+            null,
+            null,
+            OrderStatus.COMPLETED,
+            null,
+            2.2,
+            40000,
+            "Giặt đồ hàng ngày",
+            -7,
+            -5,
+            storage,
+            laundry));
+
+    // --- CANCELED Orders for Bình (2) ---
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.CANCELED,
+            null,
+            null,
+            0,
+            "Hủy do thay đổi lịch",
+            -22,
+            null,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker2,
+            null,
+            null,
+            OrderStatus.CANCELED,
+            null,
+            null,
+            0,
+            "Hủy do trời mưa",
+            -8,
+            null,
+            storage,
+            premium));
+
+    // --- WAITING Order for Bình (1) ---
+    List<Box> locker4Boxes = boxRepository.findByLockerId(locker4.getId());
+    if (locker4Boxes.size() > 2) {
+      Box binhSendBox1 = locker4Boxes.get(2);
+      binhSendBox1.setStatus(BoxStatus.OCCUPIED);
+      boxRepository.save(binhSendBox1);
+      orders.add(
+          createFullOrder(
+              binh,
+              locker4,
+              binhSendBox1,
+              null,
+              OrderStatus.WAITING,
+              "887766",
+              null,
+              55000,
+              "Giặt vest & quần tây mới",
+              0,
+              null,
+              storage,
+              premium));
+    }
+
+    // --- COLLECTED Order for Bình (1) ---
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.COLLECTED,
+            null,
+            3.0,
+            50000,
+            "Đã lấy, đang cân giặt",
+            0,
+            null,
+            storage,
+            laundry));
+
+    // --- PROCESSING Orders for Bình (2) ---
+    orders.add(
+        createFullOrder(
+            binh,
+            locker2,
+            null,
+            null,
+            OrderStatus.PROCESSING,
+            null,
+            2.5,
+            43000,
+            "Đang giặt đồ thường",
+            -1,
+            null,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.PROCESSING,
+            null,
+            1.8,
+            55000,
+            "Đang giặt hấp cao cấp",
+            -1,
+            null,
+            storage,
+            premium));
+
+    // --- READY Orders for Bình (2) ---
+    orders.add(
+        createFullOrder(
+            binh,
+            locker1,
+            null,
+            null,
+            OrderStatus.READY,
+            null,
+            2.0,
+            38000,
+            "Giặt xong, chờ trả tủ",
+            -1,
+            null,
+            storage,
+            laundry));
+    orders.add(
+        createFullOrder(
+            binh,
+            locker3,
+            null,
+            null,
+            OrderStatus.READY,
+            null,
+            3.5,
+            62000,
+            "Chăn mền giặt xong",
+            -2,
+            null,
+            storage,
+            large));
+
+    // --- RETURNED Order for Bình (1) ---
+    if (locker4Boxes.size() > 3) {
+      Box binhRecvBox1 = locker4Boxes.get(3);
+      binhRecvBox1.setStatus(BoxStatus.OCCUPIED);
+      boxRepository.save(binhRecvBox1);
+      orders.add(
+          createFullOrder(
+              binh,
+              locker4,
+              null,
+              binhRecvBox1,
+              OrderStatus.RETURNED,
+              "998877",
+              2.0,
+              37000,
+              "Đồ đã về tủ, chờ thanh toán",
+              -2,
+              null,
+              storage,
+              laundry));
+    }
+
+    // --- INITIALIZED Order for Bình (1) ---
+    if (locker4Boxes.size() > 4) {
+      Box binhInitBox = locker4Boxes.get(4);
+      binhInitBox.setStatus(BoxStatus.RESERVED);
+      boxRepository.save(binhInitBox);
+      orders.add(
+          createFullOrder(
+              binh,
+              locker4,
+              binhInitBox,
+              null,
+              OrderStatus.INITIALIZED,
+              "112233",
+              null,
+              15000,
+              "Mới tạo đơn, chưa bỏ đồ",
+              0,
+              null,
+              storage,
+              laundry));
+    }
+
     return orders;
   }
 
@@ -1594,6 +1924,23 @@ public class SampleDataLoader {
                 .weightUnit(weight != null ? "kg" : null)
                 .reservationFee(new BigDecimal("5000"))
                 .storagePrice(new BigDecimal("5000"))
+                .extraFee(new BigDecimal(status == OrderStatus.COMPLETED ? "15000" : "0"))
+                .discount(new BigDecimal(totalPrice > 40000 ? "20000" : "0"))
+                .shippingFee(new BigDecimal("15000"))
+                .originalPrice(
+                    new BigDecimal(totalPrice)
+                        .add(new BigDecimal(totalPrice > 40000 ? "20000" : "0")))
+                .promotionCode(totalPrice > 40000 ? "SALE20K" : null)
+                .appliedPromotionCodes(totalPrice > 40000 ? "SALE20K" : null)
+                .customerNote(
+                    sender != null && sender.getEmail().contains("binh")
+                        ? "Nhờ shop giặt cẩn thận và liên hệ trước khi giao nhé!"
+                        : null)
+                .staffNote(status == OrderStatus.COMPLETED ? "Đã xử lý sạch sẽ thơm tho" : null)
+                .deliveryAddress(
+                    sender != null && sender.getEmail().contains("binh")
+                        ? "123 Đường Tôn Đức Thắng, Quận 1, TP.HCM"
+                        : null)
                 .totalPrice(new BigDecimal(totalPrice))
                 .description(desc)
                 .completedAt(
@@ -1639,10 +1986,17 @@ public class SampleDataLoader {
       PaymentStatus.COMPLETED, PaymentStatus.COMPLETED, PaymentStatus.PENDING, PaymentStatus.FAILED
     };
 
-    for (int i = 0; i < Math.min(20, allOrders.size()); i++) {
+    for (int i = 0; i < allOrders.size(); i++) {
       Order order = allOrders.get(i);
       PaymentMethod method = methods[i % methods.length];
-      PaymentStatus status = i < 15 ? PaymentStatus.COMPLETED : statuses[i % statuses.length];
+
+      // If order is COMPLETED, force payment status to COMPLETED
+      PaymentStatus status;
+      if (order.getStatus() == OrderStatus.COMPLETED) {
+        status = PaymentStatus.COMPLETED;
+      } else {
+        status = statuses[i % statuses.length];
+      }
 
       Payment payment =
           paymentRepository.save(
@@ -1713,6 +2067,9 @@ public class SampleDataLoader {
     int count = 0;
     for (int i = 6; i < Math.min(26, allUsers.size()); i++) {
       User user = allUsers.get(i);
+      // Skip if loyalty account already exists for this user
+      if (loyaltyAccountRepository.existsByUserId(user.getId())) continue;
+
       long points = (long) ((i - 5) * 150 + Math.random() * 500);
       long redeemed = (long) (Math.random() * points * 0.3);
       BigDecimal spent = new BigDecimal((i - 5) * 100000 + (int) (Math.random() * 500000));
@@ -1727,6 +2084,21 @@ public class SampleDataLoader {
               .build());
       count++;
     }
+
+    // ===== Special loyalty account for Bình with HIGH points =====
+    User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
+    if (!loyaltyAccountRepository.existsByUserId(binh.getId())) {
+      loyaltyAccountRepository.save(
+          LoyaltyAccount.builder()
+              .user(binh)
+              .pointsBalance(5200L)
+              .totalPointsEarned(8500L)
+              .totalPointsRedeemed(3300L)
+              .totalAmountSpent(new BigDecimal("2850000"))
+              .build());
+      count++;
+    }
+
     return count;
   }
 
@@ -1773,6 +2145,65 @@ public class SampleDataLoader {
               .points(100L)
               .balanceAfter(accounts.get(0).getPointsBalance() + 100)
               .description("Thưởng khách hàng mới")
+              .build());
+      count++;
+    }
+
+    // ===== Detailed point transactions for Bình =====
+    User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
+    long binhBalance = 0;
+
+    // Multiple EARN transactions (simulating points earned from each completed order)
+    long[] earnAmounts = {520, 350, 450, 850, 480, 380, 720, 400, 1000, 500, 600, 750, 1500};
+    String[] earnDescs = {
+      "Điểm từ đơn giặt quần áo hàng tuần",
+      "Điểm từ đơn giặt đồ công sở",
+      "Điểm từ đơn giặt hấp vest",
+      "Điểm từ đơn giặt chăn mền",
+      "Điểm từ đơn giặt đồ thể thao",
+      "Điểm từ đơn giặt áo dài",
+      "Điểm từ đơn giặt rèm cửa",
+      "Điểm từ đơn giặt đồ hàng ngày",
+      "Thưởng khách hàng thân thiết tháng 1",
+      "Thưởng sự kiện Tết Nguyên Đán",
+      "Điểm thưởng sinh nhật",
+      "Điểm thưởng giới thiệu bạn bè",
+      "Thưởng đặc biệt VIP"
+    };
+    for (int i = 0; i < earnAmounts.length; i++) {
+      binhBalance += earnAmounts[i];
+      pointTransactionRepository.save(
+          PointTransaction.builder()
+              .user(binh)
+              .type(i < 8 ? PointTransactionType.EARN : PointTransactionType.BONUS)
+              .points(earnAmounts[i])
+              .relatedAmount(i < 8 ? new BigDecimal(earnAmounts[i] * 100) : null)
+              .balanceAfter(binhBalance)
+              .description(earnDescs[i])
+              .build());
+      count++;
+    }
+
+    // REDEEM transactions
+    long[] redeemAmounts = {500, 300, 800, 200, 500, 1000};
+    String[] redeemDescs = {
+      "Đổi điểm giảm giá đơn giặt",
+      "Đổi điểm voucher SAVE20K",
+      "Đổi điểm voucher VIP30",
+      "Đổi điểm giảm giá nhỏ",
+      "Đổi điểm voucher cuối tuần",
+      "Đổi điểm voucher Flash Sale"
+    };
+    for (int i = 0; i < redeemAmounts.length; i++) {
+      binhBalance -= redeemAmounts[i];
+      pointTransactionRepository.save(
+          PointTransaction.builder()
+              .user(binh)
+              .type(PointTransactionType.REDEEM)
+              .points(-redeemAmounts[i])
+              .relatedAmount(new BigDecimal(redeemAmounts[i] * 10))
+              .balanceAfter(binhBalance)
+              .description(redeemDescs[i])
               .build());
       count++;
     }
@@ -1943,6 +2374,70 @@ public class SampleDataLoader {
               .build());
       count++;
     }
+
+    // ===== Notifications for Bình =====
+    User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
+    // Order-related notifications
+    List<Order> binhOrders =
+        allOrders.stream()
+            .filter(o -> "truongnguyenthaibinh1050@gmail.com".equals(o.getSender().getEmail()))
+            .toList();
+    for (int i = 0; i < binhOrders.size(); i++) {
+      Order order = binhOrders.get(i);
+      String nTitle =
+          switch (order.getStatus()) {
+            case COMPLETED -> "Đơn hàng hoàn thành";
+            case WAITING -> "Đơn hàng đang chờ xử lý";
+            case PROCESSING -> "Đơn hàng đang được giặt";
+            case READY -> "Đồ đã giặt xong";
+            case RETURNED -> "Đồ đã sẵn sàng lấy";
+            case CANCELED -> "Đơn hàng đã hủy";
+            case COLLECTED -> "Đồ đã được lấy";
+            case INITIALIZED -> "Đơn hàng mới tạo";
+            case RESERVED -> "Đơn hàng đã đặt trước";
+          };
+      notificationRepository.save(
+          Notification.builder()
+              .user(binh)
+              .type(NotificationType.ORDER_STATUS)
+              .title(nTitle)
+              .message("Đơn hàng #" + order.getId() + " - " + order.getDescription())
+              .referenceId(order.getId())
+              .referenceType("ORDER")
+              .status(i < 5 ? NotificationStatus.READ : NotificationStatus.UNREAD)
+              .createdAt(order.getCreatedAt())
+              .readAt(i < 5 ? LocalDateTime.now().minusHours(i) : null)
+              .build());
+      count++;
+    }
+    // System notifications for Bình
+    notificationRepository.save(
+        Notification.builder()
+            .user(binh)
+            .type(NotificationType.SYSTEM)
+            .title("Chào mừng VIP!")
+            .message("Bạn đã đạt hạng VIP! Hưởng giảm giá 30% cho mọi đơn hàng.")
+            .status(NotificationStatus.UNREAD)
+            .build());
+    count++;
+    notificationRepository.save(
+        Notification.builder()
+            .user(binh)
+            .type(NotificationType.SYSTEM)
+            .title("Ưu đãi sinh nhật tháng 5")
+            .message("Mừng sinh nhật! Nhận voucher giảm 50% tối đa 100.000đ.")
+            .status(NotificationStatus.UNREAD)
+            .build());
+    count++;
+    notificationRepository.save(
+        Notification.builder()
+            .user(binh)
+            .type(NotificationType.PICKUP_REMINDER)
+            .title("Nhắc nhở lấy đồ")
+            .message("Đồ giặt của bạn đã sẵn sàng tại tủ. Vui lòng đến lấy trong 24h.")
+            .status(NotificationStatus.UNREAD)
+            .build());
+    count++;
 
     return count;
   }
@@ -2299,5 +2794,6 @@ public class SampleDataLoader {
     log.info("   Partners: partner.minh@gmail.com, partner.huong@gmail.com, ...");
     log.info("   Staff:    staff.tung@gmail.com, staff.hien@gmail.com, staff.tai@gmail.com");
     log.info("   Customers: customer.huy@gmail.com, customer.lan@gmail.com, ...");
+    log.info("   ⭐ VIP Test: truongnguyenthaibinh1050@gmail.com (5200 pts, 18+ orders)");
   }
 }

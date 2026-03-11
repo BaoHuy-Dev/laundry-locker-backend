@@ -2,11 +2,11 @@ package com.huynqb.laundrylockerbackend.module.order.service;
 
 import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderComplaintRequest;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderComplaintResponse;
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderComplaint;
 import com.huynqb.laundrylockerbackend.module.order.enums.ComplaintStatus;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.exception.OrderException;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderComplaint;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderComplaintRepository;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class OrderComplaintService {
 
   private final OrderComplaintRepository complaintRepository;

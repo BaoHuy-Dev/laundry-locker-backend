@@ -33,7 +33,7 @@ public class MqttConfig {
   @Value("${mqtt.topic-prefix:locker}")
   private String topicPrefix;
 
-  @Bean
+  @Bean(destroyMethod = "")
   public MqttClient mqttClient() throws MqttException {
     log.info("[MQTT] Connecting to broker: {}", brokerUrl);
 
@@ -64,5 +64,19 @@ public class MqttConfig {
     }
 
     return client;
+  }
+
+  @jakarta.annotation.PreDestroy
+  public void cleanup() {
+    try {
+      MqttClient client = mqttClient();
+      if (client != null && client.isConnected()) {
+        log.info("[MQTT] Disconnecting from broker before shutdown...");
+        client.disconnect();
+        client.close();
+      }
+    } catch (Exception e) {
+      log.error("[MQTT] Error during cleanup: {}", e.getMessage());
+    }
   }
 }

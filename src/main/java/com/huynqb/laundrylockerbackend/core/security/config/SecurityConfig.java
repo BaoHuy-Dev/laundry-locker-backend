@@ -81,7 +81,10 @@ public class SecurityConfig {
   // Payment gateway callback endpoints (must be public for VNPay/MoMo to send
   // callbacks)
   private static final String[] PAYMENT_CALLBACK_ENDPOINTS = {
-    "/api/payments/vnpay/ipn", "/api/payments/vnpay/return", "/api/payments/momo/callback"
+    "/api/payments/vnpay/ipn",
+    "/api/payments/vnpay/return",
+    "/api/payments/momo/callback",
+    "/api/payments/momo/return"
   };
 
   // WebSocket endpoints (must be public for initial connection)

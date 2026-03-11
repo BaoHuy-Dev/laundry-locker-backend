@@ -1,8 +1,7 @@
-package com.huynqb.laundrylockerbackend.module.payment.entity;
+package com.huynqb.laundrylockerbackend.module.payment.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
-import com.huynqb.laundrylockerbackend.module.payment.model.Payment;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -4,11 +4,11 @@ import com.huynqb.laundrylockerbackend.module.order.dto.request.OrderRatingReque
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderRatingResponse;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderTimelineEvent;
 import com.huynqb.laundrylockerbackend.module.order.dto.response.OrderTimelineResponse;
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderRating;
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderStatusHistory;
 import com.huynqb.laundrylockerbackend.module.order.enums.OrderStatus;
 import com.huynqb.laundrylockerbackend.module.order.exception.OrderException;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderRating;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderStatusHistory;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRatingRepository;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderStatusHistoryRepository;
@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class OrderRatingService {
 
   private final OrderRepository orderRepository;
@@ -110,6 +111,13 @@ public class OrderRatingService {
             .findByOrderId(orderId)
             .orElseThrow(() -> new OrderException("Rating not found", "RATING_NOT_FOUND"));
     return mapToRatingResponse(rating);
+  }
+
+  /** Get all ratings by a specific user. */
+  public List<OrderRatingResponse> getMyRatings(Long userId) {
+    return orderRatingRepository.findByUserIdAndDeleteFlagFalse(userId).stream()
+        .map(this::mapToRatingResponse)
+        .collect(Collectors.toList());
   }
 
   /** Get ratings for a store. */

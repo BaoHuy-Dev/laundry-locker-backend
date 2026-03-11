@@ -171,22 +171,31 @@ public class PaymentService {
    */
   @Transactional
   public void processMoMoCallback(Map<String, Object> params) {
-    log.info("Processing MoMo callback");
+    log.info("Processing MoMo callback with params: {}", params);
 
     // Verify signature
     if (!momoService.verifySignature(params)) {
-      log.error("Invalid MoMo signature");
+      log.error("Invalid MoMo signature for params: {}", params);
       throw new PaymentException("E_PAYMENT002", "Invalid signature");
     }
+    log.info("MoMo signature verified successfully");
 
     Long orderId = momoService.extractOrderId(params);
     if (orderId == null) {
-      log.error("Cannot extract order ID from MoMo callback");
+      log.error(
+          "Cannot extract order ID from MoMo callback. orderId param: {}", params.get("orderId"));
       return;
     }
+    log.info("Extracted order ID: {}", orderId);
 
     boolean success = momoService.isPaymentSuccess(params);
     String transactionId = momoService.getTransactionId(params);
+    log.info(
+        "MoMo payment result - orderId: {}, success: {}, transactionId: {}, resultCode: {}",
+        orderId,
+        success,
+        transactionId,
+        params.get("resultCode"));
 
     updatePaymentFromMoMoCallback(orderId, transactionId, success);
   }

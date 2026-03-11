@@ -198,4 +198,9 @@ public class Order extends BaseModel {
   @Builder.Default
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<OrderDetail> orderDetails = new ArrayList<>();
+
+  // Order complaints
+  @Builder.Default
+  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<OrderComplaint> orderComplaints = new ArrayList<>();
 }

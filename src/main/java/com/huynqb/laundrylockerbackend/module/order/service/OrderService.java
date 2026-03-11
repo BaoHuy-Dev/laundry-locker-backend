@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.order.service;
 
-import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
 import com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
