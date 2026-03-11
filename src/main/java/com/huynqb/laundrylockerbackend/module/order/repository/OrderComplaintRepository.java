@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.order.repository;
 
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderComplaint;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderComplaint;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

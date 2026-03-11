@@ -182,6 +182,7 @@ public class UriParamConstants {
   public static final String PARTNER_ORDERS_PROCESS = "/orders/{orderId}/process";
   public static final String PARTNER_ORDERS_READY = "/orders/{orderId}/ready";
   public static final String PARTNER_ORDERS_WEIGHT = "/orders/{orderId}/weight";
+  public static final String PARTNER_ORDERS_COLLECT = "/orders/{orderId}/collect";
   public static final String PARTNER_ORDERS_STATISTICS = "/orders/statistics";
   public static final String PARTNER_LOCKERS = "/lockers";
   public static final String PARTNER_LOCKERS_BOXES_AVAILABLE =
@@ -291,6 +292,7 @@ public class UriParamConstants {
   public static final String ORDER_COMPLAINT = "/{orderId}/complaint";
   public static final String ORDER_COMPLAINTS = "/{orderId}/complaints";
   public static final String MY_COMPLAINTS = "/my-complaints";
+  public static final String MY_RATINGS = "/my-ratings";
   public static final String ORDER_REORDER = "/{orderId}/reorder";
 
   // ===== Additional Locker Endpoints =====

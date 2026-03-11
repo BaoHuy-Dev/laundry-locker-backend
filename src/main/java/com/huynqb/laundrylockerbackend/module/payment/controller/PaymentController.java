@@ -84,8 +84,13 @@ public class PaymentController {
   @Operation(summary = "MoMo Callback", description = "MoMo payment callback")
   @PostMapping(UriParamConstants.MOMO_CALLBACK)
   public ResponseEntity<Map<String, Object>> momoCallback(@RequestBody Map<String, Object> params) {
-    log.info("Received MoMo callback");
-    paymentService.processMoMoCallback(params);
+    log.info("Received MoMo callback with params: {}", params);
+    try {
+      paymentService.processMoMoCallback(params);
+    } catch (Exception e) {
+      log.error("Error processing MoMo callback: {}", e.getMessage(), e);
+      // Still return 200 OK to MoMo so it doesn't retry
+    }
 
     Map<String, Object> response = new HashMap<>();
     response.put("status", 0);
@@ -97,7 +102,7 @@ public class PaymentController {
   @Operation(summary = "MoMo Return", description = "MoMo return URL after payment")
   @GetMapping(UriParamConstants.MOMO_RETURN)
   public ResponseEntity<ApiResponse<String>> momoReturn(@RequestParam Map<String, String> params) {
-    log.info("Received MoMo return redirect");
+    log.info("Received MoMo return redirect with params: {}", params);
     // This endpoint is for user redirect, actual processing happens via callback
     return ResponseEntity.ok(responseHelper.success("Payment completed", "PAYMENT_SUCCESS"));
   }

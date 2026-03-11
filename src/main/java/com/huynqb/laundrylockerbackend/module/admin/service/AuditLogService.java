@@ -3,7 +3,7 @@ package com.huynqb.laundrylockerbackend.module.admin.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AuditLogResponse;
-import com.huynqb.laundrylockerbackend.module.admin.entity.AuditLog;
+import com.huynqb.laundrylockerbackend.module.admin.model.AuditLog;
 import com.huynqb.laundrylockerbackend.module.admin.repository.AuditLogRepository;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;

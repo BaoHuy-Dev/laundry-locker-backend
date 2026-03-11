@@ -1,7 +1,7 @@
 package com.huynqb.laundrylockerbackend.module.admin.repository;
 
-import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
-import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion.AcquisitionType;
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion.AcquisitionType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

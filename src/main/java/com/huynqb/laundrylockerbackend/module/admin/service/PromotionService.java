@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huynqb.laundrylockerbackend.core.exception.BusinessException;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.PromotionRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.PromotionResponse;
-import com.huynqb.laundrylockerbackend.module.admin.entity.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;

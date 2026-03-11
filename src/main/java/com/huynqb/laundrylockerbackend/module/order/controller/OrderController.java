@@ -294,6 +294,21 @@ public class OrderController {
     return ResponseEntity.ok(responseHelper.success(response, "ORDER_RATING_RETRIEVED"));
   }
 
+  /** Get all my ratings. */
+  @Operation(
+      summary = "Get My Ratings",
+      description = "Get all ratings submitted by the current user")
+  @GetMapping(UriParamConstants.MY_RATINGS)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<
+          ApiResponse<
+              List<com.huynqb.laundrylockerbackend.module.order.dto.response.OrderRatingResponse>>>
+      getMyRatings(@RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    var response = orderRatingService.getMyRatings(userId);
+    return ResponseEntity.ok(responseHelper.success(response, "MY_RATINGS_RETRIEVED"));
+  }
+
   /** Get order timeline. */
   @Operation(summary = "Get Order Timeline", description = "Get timeline of order status changes")
   @GetMapping(UriParamConstants.ORDER_TIMELINE)

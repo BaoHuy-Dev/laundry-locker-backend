@@ -1,8 +1,8 @@
 package com.huynqb.laundrylockerbackend.module.admin.repository;
 
-import com.huynqb.laundrylockerbackend.module.admin.entity.PromotionUsage;
-import com.huynqb.laundrylockerbackend.module.admin.entity.PromotionUsage.UsageStatus;
-import com.huynqb.laundrylockerbackend.module.admin.entity.PromotionUsage.UsageType;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage.UsageStatus;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage.UsageType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;

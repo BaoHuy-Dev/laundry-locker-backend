@@ -20,6 +20,7 @@ import com.huynqb.laundrylockerbackend.module.partner.dto.response.StaffAccessCo
 import com.huynqb.laundrylockerbackend.module.partner.enums.AccessCodeAction;
 import com.huynqb.laundrylockerbackend.module.partner.enums.PartnerStatus;
 import com.huynqb.laundrylockerbackend.module.partner.exception.PartnerException;
+import com.huynqb.laundrylockerbackend.module.partner.helper.OrderBoxHelper;
 import com.huynqb.laundrylockerbackend.module.partner.mapper.PartnerMapper;
 import com.huynqb.laundrylockerbackend.module.partner.model.Partner;
 import com.huynqb.laundrylockerbackend.module.partner.repository.PartnerRepository;
@@ -69,6 +70,7 @@ public class PartnerService {
   private final OrderMapper orderMapper;
   private final StaffAccessCodeService accessCodeService;
   private final LockerService lockerService;
+  private final OrderBoxHelper orderBoxHelper;
 
   // ===== Partner Registration =====
 
@@ -256,6 +258,22 @@ public class PartnerService {
     log.info("Partner {} accepted order {}", partner.getId(), orderId);
     return generateAccessCode(
         partner.getId(), orderId, AccessCodeAction.COLLECT, expirationHours, notes);
+  }
+
+  @Transactional
+  public OrderResponse forceCollectOrder(Long userId, Long orderId) {
+    Partner partner = getApprovedPartner(userId);
+    Order order = findOrderById(orderId);
+
+    PartnerOrderValidator.validateOrderBelongsToPartner(order, partner);
+    PartnerOrderValidator.validateForAcceptance(order);
+
+    orderBoxHelper.releaseSendBoxes(order);
+    order.setStatus(OrderStatus.COLLECTED);
+    order = orderRepository.save(order);
+
+    log.info("Order {} force-collected by partner {}", orderId, partner.getId());
+    return orderMapper.toResponse(order);
   }
 
   @Transactional

@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.admin.repository;
 
-import com.huynqb.laundrylockerbackend.module.admin.entity.AuditLog;
+import com.huynqb.laundrylockerbackend.module.admin.model.AuditLog;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;

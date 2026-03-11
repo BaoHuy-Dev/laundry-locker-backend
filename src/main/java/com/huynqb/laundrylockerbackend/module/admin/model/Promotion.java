@@ -1,4 +1,4 @@
-package com.huynqb.laundrylockerbackend.module.admin.entity;
+package com.huynqb.laundrylockerbackend.module.admin.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
 import com.huynqb.laundrylockerbackend.module.user.model.User;

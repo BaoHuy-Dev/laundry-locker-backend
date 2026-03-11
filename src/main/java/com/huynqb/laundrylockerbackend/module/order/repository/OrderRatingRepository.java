@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.order.repository;
 
-import com.huynqb.laundrylockerbackend.module.order.entity.OrderRating;
+import com.huynqb.laundrylockerbackend.module.order.model.OrderRating;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;

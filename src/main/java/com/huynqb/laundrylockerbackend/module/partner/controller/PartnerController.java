@@ -130,6 +130,18 @@ public class PartnerController {
         .body(responseHelper.success(response, "ORDER_ACCEPTED"));
   }
 
+  @Operation(
+      summary = "Force Collect Order",
+      description = "Manually mark order as COLLECTED without requiring staff access code")
+  @PostMapping(UriParamConstants.PARTNER_ORDERS_COLLECT)
+  @PreAuthorize("hasRole('PARTNER')")
+  public ResponseEntity<ApiResponse<OrderResponse>> forceCollectOrder(
+      @RequestHeader("Authorization") String authHeader, @PathVariable Long orderId) {
+    Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);
+    OrderResponse response = partnerService.forceCollectOrder(userId, orderId);
+    return ResponseEntity.ok(responseHelper.success(response, "ORDER_COLLECTED"));
+  }
+
   @Operation(summary = "Update Order to Processing", description = "Mark order as being processed")
   @PostMapping(UriParamConstants.PARTNER_ORDERS_PROCESS)
   @PreAuthorize("hasRole('PARTNER')")

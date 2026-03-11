@@ -1,9 +1,8 @@
-package com.huynqb.laundrylockerbackend.module.order.entity;
+package com.huynqb.laundrylockerbackend.module.order.model;
 
 import com.huynqb.laundrylockerbackend.core.model.BaseModel;
 import com.huynqb.laundrylockerbackend.module.order.enums.ComplaintStatus;
 import com.huynqb.laundrylockerbackend.module.order.enums.ComplaintType;
-import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

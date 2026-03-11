@@ -1,6 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.payment.repository;
 
-import com.huynqb.laundrylockerbackend.module.payment.entity.Refund;
+import com.huynqb.laundrylockerbackend.module.payment.model.Refund;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
