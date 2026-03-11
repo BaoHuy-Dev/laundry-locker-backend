@@ -839,10 +839,23 @@ public class SampleDataLoader {
       }
     };
 
+    String[] imageUrls = {
+      "https://diadiemvietnam.vn/wp-content/uploads/2022/09/uy-ban-nhan-dan-thanh-pho-ho-chi-minh.jpg",
+      "https://tse1.mm.bing.net/th/id/OIP.ROsZ8GVAg7_aOSrHkZl4SwHaFj?rs=1&pid=ImgDetMain&o=7&rm=3",
+      "https://images2.thanhnien.vn/528068263637045248/2023/12/23/photo-1703344285006-17033442869781741722492.jpeg",
+      "https://www.tnkjapan.com/blog/wp-content/uploads/2018/09/SaigonPrincessByNight.jpg",
+      "https://media-cdn-v2.laodong.vn/storage/newsportal/2023/4/14/1179699/20-HCM-999279.jpg?w=800&crop=auto&scale=both",
+      "https://img.docbao.vn/images/uploads/2022/03/15/xa-hoi/pho-di-bo_1.jpg",
+      "https://denchiktravel.ru/wp-content/uploads/2024/02/IMG_20231128_192627-scaled.jpg",
+      "https://kenh14cdn.com/203336854389633024/2025/6/28/z5903621308479b92e9697a4a316c356cf42ee1d8606d3-1750985323622170579927-1751070769291-1751070770174614703353.jpg",
+      "https://kenhhomestay.com/wp-content/uploads/2022/03/hotel-continental-saigon-25.jpg"
+    };
+
     for (int i = 0; i < storeInfo.length; i++) {
       String[] info = storeInfo[i];
       Partner partner = allPartners.get(i % allPartners.size());
       StoreStatus status = i == 2 || i == 16 ? StoreStatus.INACTIVE : StoreStatus.ACTIVE;
+      String image = imageUrls[i % imageUrls.length];
       stores.add(
           storeRepository.save(
               Store.builder()
@@ -852,6 +865,7 @@ public class SampleDataLoader {
                   .latitude(Double.parseDouble(info[3]))
                   .longitude(Double.parseDouble(info[4]))
                   .status(status)
+                  .image(image)
                   .description(i < 5 ? "Cửa hàng " + (i % 2 == 0 ? "flagship" : "chi nhánh") : null)
                   .partner(partner)
                   .build()));
@@ -885,7 +899,6 @@ public class SampleDataLoader {
     LockerStatus[] statuses = {
       LockerStatus.ACTIVE, LockerStatus.ACTIVE, LockerStatus.MAINTENANCE, LockerStatus.DISCONNECTED
     };
-
     // Create 20 lockers across stores
     for (int i = 0; i < 20; i++) {
       Store store = allStores.get(i % allStores.size());
@@ -894,6 +907,27 @@ public class SampleDataLoader {
       LockerStatus status = statuses[i % statuses.length];
       BoxSize[] sizes = boxConfigs[i % boxConfigs.length];
       lockers.add(createLockerWithBoxes(code, name, store, status, sizes));
+    }
+
+    // Add 15 extra empty boxes to the first locker for testing
+    if (!lockers.isEmpty()) {
+      Locker firstLocker = lockers.get(0);
+      BoxSize[] extraSizes = {
+        BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL, BoxSize.SMALL,
+        BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM, BoxSize.MEDIUM,
+        BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE, BoxSize.LARGE
+      };
+      for (int i = 0; i < extraSizes.length; i++) {
+        boxRepository.save(
+            Box.builder()
+                .locker(firstLocker)
+                .boxNumber(7 + i) // Start after existing 6 boxes
+                .size(extraSizes[i])
+                .status(BoxStatus.AVAILABLE)
+                .isActive(true)
+                .build());
+      }
+      log.info("   ✓ Added 15 extra boxes to first locker: {}", firstLocker.getCode());
     }
 
     return lockers;

@@ -1,13 +1,20 @@
 package com.huynqb.laundrylockerbackend.module.locker.service;
 
+import com.huynqb.laundrylockerbackend.module.locker.dto.request.LockerReportRequest;
 import com.huynqb.laundrylockerbackend.module.locker.dto.response.BoxResponse;
+import com.huynqb.laundrylockerbackend.module.locker.dto.response.LockerReportResponse;
 import com.huynqb.laundrylockerbackend.module.locker.dto.response.LockerResponse;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
+import com.huynqb.laundrylockerbackend.module.locker.enums.LockerReportStatus;
 import com.huynqb.laundrylockerbackend.module.locker.mapper.LockerMapper;
 import com.huynqb.laundrylockerbackend.module.locker.model.Box;
 import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
+import com.huynqb.laundrylockerbackend.module.locker.model.LockerReport;
 import com.huynqb.laundrylockerbackend.module.locker.repository.BoxRepository;
+import com.huynqb.laundrylockerbackend.module.locker.repository.LockerReportRepository;
 import com.huynqb.laundrylockerbackend.module.locker.repository.LockerRepository;
+import com.huynqb.laundrylockerbackend.module.user.model.User;
+import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +31,8 @@ public class LockerService {
 
   private final LockerRepository lockerRepository;
   private final BoxRepository boxRepository;
+  private final LockerReportRepository lockerReportRepository;
+  private final UserRepository userRepository;
   private final LockerMapper lockerMapper;
 
   @Transactional(readOnly = true)
@@ -60,6 +69,38 @@ public class LockerService {
   public List<BoxResponse> getAvailableBoxes(Long lockerId) {
     return boxRepository.findByLockerIdAndStatus(lockerId, BoxStatus.AVAILABLE).stream()
         .map(lockerMapper::toBoxResponse)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional
+  public LockerReportResponse reportLocker(
+      Long lockerId, LockerReportRequest request, Long userId) {
+    Locker locker =
+        lockerRepository
+            .findById(lockerId)
+            .orElseThrow(() -> new EntityNotFoundException("Locker not found"));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+    LockerReport report =
+        LockerReport.builder()
+            .locker(locker)
+            .user(user)
+            .description(request.getDescription())
+            .status(LockerReportStatus.PENDING)
+            .build();
+
+    report = lockerReportRepository.save(report);
+    return LockerReportResponse.from(report);
+  }
+
+  /** Get all reports submitted by a specific user. */
+  @Transactional(readOnly = true)
+  public List<LockerReportResponse> getUserReports(Long userId) {
+    return lockerReportRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+        .map(LockerReportResponse::from)
         .collect(Collectors.toList());
   }
 

@@ -42,4 +42,12 @@ public class TagConstants {
   // ===== Partner Module Tags =====
   public static final String ROOT_TAG_PARTNER = "PARTNER";
   public static final String ROOT_TAG_ADMIN_PARTNERS = "ADMIN - PARTNERS";
+
+  // ===== Promotion Module Tags =====
+  public static final String ROOT_TAG_PROMOTIONS = "PROMOTIONS";
+  public static final String ROOT_TAG_ADMIN_PROMOTIONS = "ADMIN - PROMOTIONS";
+
+  // ===== Admin System Tags =====
+  public static final String ROOT_TAG_ADMIN_SYSTEM = "ADMIN - SYSTEM";
+  public static final String ROOT_TAG_ADMIN_AUDIT_LOGS = "ADMIN - AUDIT LOGS";
 }

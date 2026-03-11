@@ -91,9 +91,14 @@ public class StaffAccessCodeService {
       return buildFailureResponse(request.getOrderId(), "Invalid or expired access code");
     }
 
-    // Validate code matches the order
-    if (!accessCode.getOrder().getId().equals(request.getOrderId())) {
-      return buildFailureResponse(request.getOrderId(), "Access code does not match this order");
+    // If orderId is provided, validate it matches; otherwise derive from access code
+    Long orderId = request.getOrderId();
+    if (orderId != null) {
+      if (!accessCode.getOrder().getId().equals(orderId)) {
+        return buildFailureResponse(orderId, "Access code does not match this order");
+      }
+    } else {
+      orderId = accessCode.getOrder().getId();
     }
 
     Order order = accessCode.getOrder();

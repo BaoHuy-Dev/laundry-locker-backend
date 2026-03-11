@@ -5,14 +5,19 @@ import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateBoxRequest
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.CreateLockerRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.AdminLockerResponse;
 import com.huynqb.laundrylockerbackend.module.admin.mapper.AdminLockerMapper;
+import com.huynqb.laundrylockerbackend.module.locker.dto.response.LockerReportResponse;
 import com.huynqb.laundrylockerbackend.module.locker.enums.BoxStatus;
+import com.huynqb.laundrylockerbackend.module.locker.enums.LockerReportStatus;
 import com.huynqb.laundrylockerbackend.module.locker.enums.LockerStatus;
 import com.huynqb.laundrylockerbackend.module.locker.model.Box;
 import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
+import com.huynqb.laundrylockerbackend.module.locker.model.LockerReport;
 import com.huynqb.laundrylockerbackend.module.locker.repository.BoxRepository;
+import com.huynqb.laundrylockerbackend.module.locker.repository.LockerReportRepository;
 import com.huynqb.laundrylockerbackend.module.locker.repository.LockerRepository;
 import com.huynqb.laundrylockerbackend.module.store.model.Store;
 import com.huynqb.laundrylockerbackend.module.store.repository.StoreRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +47,7 @@ public class AdminLockerService {
   private final LockerRepository lockerRepository;
   private final BoxRepository boxRepository;
   private final StoreRepository storeRepository;
+  private final LockerReportRepository lockerReportRepository;
   private final AdminLockerMapper mapper;
 
   public Page<AdminLockerResponse> getAllLockers(Pageable pageable) {
@@ -56,6 +62,27 @@ public class AdminLockerService {
 
   public AdminLockerResponse getLockerById(Long id) {
     return toResponseWithBoxes(findLockerById(id));
+  }
+
+  public Page<LockerReportResponse> getAllReports(Pageable pageable) {
+    return lockerReportRepository
+        .findAllByOrderByCreatedAtDesc(pageable)
+        .map(LockerReportResponse::from);
+  }
+
+  @Transactional
+  public LockerReportResponse resolveReport(Long reportId) {
+    LockerReport report =
+        lockerReportRepository
+            .findById(reportId)
+            .orElseThrow(() -> new ResourceNotFoundException("Report not found: " + reportId));
+
+    report.setStatus(LockerReportStatus.RESOLVED);
+    report.setResolvedAt(LocalDateTime.now());
+
+    report = lockerReportRepository.save(report);
+    log.info("Admin resolved locker report: {}", reportId);
+    return LockerReportResponse.from(report);
   }
 
   @Transactional
@@ -83,7 +110,6 @@ public class AdminLockerService {
     updateIfNotNull(request.getName(), locker::setName);
     updateIfNotNull(request.getCode(), locker::setCode);
     updateIfNotNull(request.getAddress(), locker::setAddress);
-    updateIfNotNull(request.getImage(), locker::setImage);
 
     if (request.getStoreId() != null) {
       Store store = findStoreById(request.getStoreId());
@@ -92,15 +118,6 @@ public class AdminLockerService {
 
     locker = lockerRepository.save(locker);
     log.info("Admin updated locker: {}", id);
-    return toResponseWithBoxes(locker);
-  }
-
-  @Transactional
-  public AdminLockerResponse updateLockerImage(Long id, String imageUrl) {
-    Locker locker = findLockerById(id);
-    locker.setImage(imageUrl);
-    locker = lockerRepository.save(locker);
-    log.info("Admin updated locker image: {}", id);
     return toResponseWithBoxes(locker);
   }
 

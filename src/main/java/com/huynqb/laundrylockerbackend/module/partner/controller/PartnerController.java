@@ -65,7 +65,7 @@ public class PartnerController {
 
   @Operation(summary = "Get My Partner Profile", description = "Get current user's partner profile")
   @GetMapping
-  @PreAuthorize("hasRole('PARTNER')")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<PartnerResponse>> getMyPartnerProfile(
       @RequestHeader("Authorization") String authHeader) {
     Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);

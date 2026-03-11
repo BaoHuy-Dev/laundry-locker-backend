@@ -18,7 +18,6 @@ public class LockerResponse {
   private Long id;
   private String code;
   private String name;
-  private String image;
   private LockerStatus status;
   private String address;
   private Double longitude;

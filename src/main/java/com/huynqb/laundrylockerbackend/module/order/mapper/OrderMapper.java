@@ -63,6 +63,7 @@ public interface OrderMapper {
   @Mapping(target = "promotionDiscount", source = "discount")
   // ===== ORDER DETAILS MAPPING =====
   @Mapping(target = "orderDetails", source = "orderDetails")
+  @Mapping(target = "intendedReceiveAt", source = "intendedReceiveAt")
   OrderResponse toResponse(Order order);
 
   List<OrderResponse> toResponseList(List<Order> orders);

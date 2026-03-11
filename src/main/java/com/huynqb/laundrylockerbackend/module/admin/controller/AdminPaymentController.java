@@ -57,7 +57,7 @@ public class AdminPaymentController {
   @Operation(
       summary = "Update Payment Status",
       description = "Force update payment status (Admin override)")
-  @PutMapping("/{paymentId}/status")
+  @PutMapping(UriParamConstants.ADMIN_PAYMENT_STATUS)
   public ResponseEntity<ApiResponse<PaymentResponse>> updatePaymentStatus(
       @PathVariable Long paymentId, @RequestParam PaymentStatus status) {
     PaymentResponse payment = adminPaymentService.updatePaymentStatus(paymentId, status);

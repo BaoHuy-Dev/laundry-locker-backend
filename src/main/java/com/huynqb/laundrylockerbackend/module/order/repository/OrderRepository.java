@@ -148,4 +148,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
       @Param("storeIds") List<Long> storeIds,
       @Param("fromDate") LocalDateTime fromDate,
       @Param("toDate") LocalDateTime toDate);
+
+  // ===== User Statistics Queries =====
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.sender.id = :userId AND o.type = 'LAUNDRY' AND o.deleteFlag = false")
+  long countLaundryOrdersByUserId(@Param("userId") Long userId);
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.sender.id = :userId AND o.type = 'STORAGE' AND o.deleteFlag = false")
+  long countStorageOrdersByUserId(@Param("userId") Long userId);
+
+  @Query(
+      "SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.sender.id = :userId AND o.status = 'COMPLETED' AND o.deleteFlag = false")
+  java.math.BigDecimal sumSpendByUserId(@Param("userId") Long userId);
+
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE o.sender.id = :userId AND (o.promotionCode IS NOT NULL OR o.appliedPromotionCodes IS NOT NULL) AND o.deleteFlag = false")
+  long countVouchersUsedByUserId(@Param("userId") Long userId);
 }

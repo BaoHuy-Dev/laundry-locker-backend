@@ -284,4 +284,43 @@ public class UriParamConstants {
   // ===== Admin Notification Endpoints =====
   public static final String ADMIN_NOTIFICATION_BROADCAST = "/broadcast";
   public static final String ADMIN_NOTIFICATION_SEND = "/send";
+
+  // ===== Additional Order Endpoints =====
+  public static final String ORDER_RESET_PIN = "/{orderId}/reset-pin";
+  public static final String ORDER_PICKUP_STORAGE = "/{orderId}/pickup-storage";
+  public static final String ORDER_COMPLAINT = "/{orderId}/complaint";
+  public static final String ORDER_COMPLAINTS = "/{orderId}/complaints";
+  public static final String MY_COMPLAINTS = "/my-complaints";
+  public static final String ORDER_REORDER = "/{orderId}/reorder";
+
+  // ===== Additional Locker Endpoints =====
+  public static final String LOCKER_REPORT = "/{id}/report";
+  public static final String LOCKER_MY_REPORTS = "/my-reports";
+
+  // ===== Additional Admin Payment Endpoints =====
+  public static final String ADMIN_PAYMENT_STATUS = "/{paymentId}/status";
+
+  // ===== Additional Admin Partner Endpoints =====
+  public static final String ADMIN_PARTNERS_SUSPEND = "/{partnerId}/suspend";
+
+  // ===== Additional User Endpoints =====
+  public static final String USER_STATISTICS = "/me/statistics";
+
+  // ===== Promotion Endpoints =====
+  public static final String PROMOTION_ACTIVE = "/active";
+  public static final String PROMOTION_VALIDATE_CODE = "/validate/{code}";
+  public static final String PROMOTION_STATUS = "/status/{status}";
+  public static final String PROMOTION_SEARCH = "/search";
+
+  // ===== Admin Locker Reports Endpoints =====
+  public static final String ADMIN_LOCKER_REPORTS = "/reports";
+  public static final String ADMIN_LOCKER_REPORTS_RESOLVE = "/reports/{id}/resolve";
+
+  // ===== Additional Payment Endpoints =====
+  public static final String PAYMENT_ORDER_REFUNDS = "/order/{orderId}/refunds";
+
+  // ===== Audit Log Endpoints =====
+  public static final String AUDIT_LOG_ENTITY = "/entity/{entityType}/{entityId}";
+  public static final String AUDIT_LOG_USER = "/user/{userId}";
+  public static final String AUDIT_LOG_STATISTICS = "/statistics";
 }

@@ -10,6 +10,7 @@ import com.huynqb.laundrylockerbackend.module.user.dto.request.ChangePasswordReq
 import com.huynqb.laundrylockerbackend.module.user.dto.request.FcmTokenRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.request.UpdateProfileRequest;
 import com.huynqb.laundrylockerbackend.module.user.dto.response.UserResponse;
+import com.huynqb.laundrylockerbackend.module.user.dto.response.UserStatisticsResponse;
 import com.huynqb.laundrylockerbackend.module.user.mapper.UserMapper;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
@@ -60,6 +61,18 @@ public class UserController {
     UserResponse userResponse = userMapper.toResponse(user);
 
     return ResponseEntity.ok(responseHelper.success(userResponse, "USER_PROFILE_OK"));
+  }
+
+  @Operation(
+      summary = "Get User Statistics",
+      description = "Retrieve current user's order and spending statistics")
+  @GetMapping(UriParamConstants.USER_STATISTICS)
+  @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<ApiResponse<UserStatisticsResponse>> getUserStatistics(
+      @RequestHeader("Authorization") String authHeader) {
+    Long userId = extractUserId(authHeader);
+    UserStatisticsResponse response = userService.getUserStatistics(userId);
+    return ResponseEntity.ok(responseHelper.success(response, "USER_STATISTICS_RETRIEVED"));
   }
 
   @Operation(summary = "Admin Dashboard", description = "Access admin dashboard (Admin only)")

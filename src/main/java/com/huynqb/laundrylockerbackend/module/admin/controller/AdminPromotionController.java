@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.admin.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for managing promotions (Admin only). */
-@Tag(name = "Admin - Promotions", description = "Promotion management APIs")
+@Tag(name = TagConstants.ROOT_TAG_ADMIN_PROMOTIONS, description = "Promotion management APIs")
 @RequestMapping(UriParamConstants.ROOT_URI_ADMIN_PROMOTIONS)
 @RestController
 @RequiredArgsConstructor
@@ -73,7 +74,7 @@ public class AdminPromotionController {
   @Operation(
       summary = "Get Promotions by Status",
       description = "Get promotions filtered by status")
-  @GetMapping("/status/{status}")
+  @GetMapping(UriParamConstants.PROMOTION_STATUS)
   public ResponseEntity<ApiResponse<Page<PromotionResponse>>> getPromotionsByStatus(
       @PathVariable String status, Pageable pageable) {
     Page<PromotionResponse> promotions = promotionService.getPromotionsByStatus(status, pageable);
@@ -82,7 +83,7 @@ public class AdminPromotionController {
 
   /** Get active promotions. */
   @Operation(summary = "Get Active Promotions", description = "Get all currently active promotions")
-  @GetMapping("/active")
+  @GetMapping(UriParamConstants.PROMOTION_ACTIVE)
   public ResponseEntity<ApiResponse<List<PromotionResponse>>> getActivePromotions() {
     List<PromotionResponse> promotions = promotionService.getActivePromotions();
     return ResponseEntity.ok(responseHelper.success(promotions, "ACTIVE_PROMOTIONS_RETRIEVED"));
@@ -111,7 +112,7 @@ public class AdminPromotionController {
 
   /** Search promotions. */
   @Operation(summary = "Search Promotions", description = "Search promotions by keyword")
-  @GetMapping("/search")
+  @GetMapping(UriParamConstants.PROMOTION_SEARCH)
   public ResponseEntity<ApiResponse<Page<PromotionResponse>>> searchPromotions(
       @RequestParam String keyword, Pageable pageable) {
     Page<PromotionResponse> promotions = promotionService.searchPromotions(keyword, pageable);
