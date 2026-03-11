@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.user.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
@@ -20,7 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Public REST controller for promotions. Any authenticated user can view active promotions and
  * validate codes.
  */
-@Tag(name = "Promotions", description = "Public Promotion APIs for mobile users")
+@Tag(
+    name = TagConstants.ROOT_TAG_PROMOTIONS,
+    description = "Public Promotion APIs for mobile users")
 @RequestMapping(UriParamConstants.ROOT_URI_PROMOTIONS)
 @RestController
 @RequiredArgsConstructor
@@ -34,7 +37,7 @@ public class UserPromotionController {
   @Operation(
       summary = "Get Active Promotions",
       description = "Get all currently active promotions available for users")
-  @GetMapping("/active")
+  @GetMapping(UriParamConstants.PROMOTION_ACTIVE)
   public ResponseEntity<ApiResponse<List<PromotionResponse>>> getActivePromotions() {
     List<PromotionResponse> promotions = promotionService.getActivePromotions();
     return ResponseEntity.ok(responseHelper.success(promotions, "ACTIVE_PROMOTIONS_RETRIEVED"));
@@ -44,7 +47,7 @@ public class UserPromotionController {
   @Operation(
       summary = "Validate Promotion Code",
       description = "Check if a promotion code is valid and currently active")
-  @GetMapping("/validate/{code}")
+  @GetMapping(UriParamConstants.PROMOTION_VALIDATE_CODE)
   public ResponseEntity<ApiResponse<PromotionResponse>> validatePromotionCode(
       @PathVariable String code) {
     PromotionResponse response = promotionService.validatePromotionCode(code);

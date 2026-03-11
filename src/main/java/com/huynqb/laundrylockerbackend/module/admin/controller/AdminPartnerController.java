@@ -64,7 +64,7 @@ public class AdminPartnerController {
   }
 
   @Operation(summary = "Suspend Partner", description = "Suspend an active partner")
-  @PostMapping("/{partnerId}/suspend")
+  @PostMapping(UriParamConstants.ADMIN_PARTNERS_SUSPEND)
   public ResponseEntity<ApiResponse<PartnerResponse>> suspendPartner(@PathVariable Long partnerId) {
     PartnerResponse partner = partnerService.suspendPartner(partnerId);
     return ResponseEntity.ok(responseHelper.success(partner, "PARTNER_SUSPENDED"));

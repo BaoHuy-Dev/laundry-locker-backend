@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.admin.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for viewing audit logs (Admin only). */
-@Tag(name = "Admin - Audit Logs", description = "Audit log viewing APIs")
+@Tag(name = TagConstants.ROOT_TAG_ADMIN_AUDIT_LOGS, description = "Audit log viewing APIs")
 @RequestMapping(UriParamConstants.ROOT_URI_ADMIN + UriParamConstants.ADMIN_AUDIT_LOGS)
 @RestController
 @RequiredArgsConstructor
@@ -56,7 +57,7 @@ public class AdminAuditLogController {
   @Operation(
       summary = "Get Entity Audit Logs",
       description = "Get audit logs for a specific entity")
-  @GetMapping("/entity/{entityType}/{entityId}")
+  @GetMapping(UriParamConstants.AUDIT_LOG_ENTITY)
   public ResponseEntity<ApiResponse<Page<AuditLogResponse>>> getEntityAuditLogs(
       @PathVariable String entityType, @PathVariable Long entityId, Pageable pageable) {
     Page<AuditLogResponse> logs =
@@ -66,7 +67,7 @@ public class AdminAuditLogController {
 
   /** Get audit logs for a specific user. */
   @Operation(summary = "Get User Audit Logs", description = "Get audit logs for a specific user")
-  @GetMapping("/user/{userId}")
+  @GetMapping(UriParamConstants.AUDIT_LOG_USER)
   public ResponseEntity<ApiResponse<Page<AuditLogResponse>>> getUserAuditLogs(
       @PathVariable Long userId, Pageable pageable) {
     Page<AuditLogResponse> logs = auditLogService.getUserAuditLogs(userId, pageable);
@@ -77,7 +78,7 @@ public class AdminAuditLogController {
   @Operation(
       summary = "Get Action Statistics",
       description = "Get count of actions within a date range")
-  @GetMapping("/statistics")
+  @GetMapping(UriParamConstants.AUDIT_LOG_STATISTICS)
   public ResponseEntity<ApiResponse<Map<String, Long>>> getActionStatistics(
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {

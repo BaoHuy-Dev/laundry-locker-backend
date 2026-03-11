@@ -66,7 +66,7 @@ public class UserController {
   @Operation(
       summary = "Get User Statistics",
       description = "Retrieve current user's order and spending statistics")
-  @GetMapping("/me/statistics")
+  @GetMapping(UriParamConstants.USER_STATISTICS)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<UserStatisticsResponse>> getUserStatistics(
       @RequestHeader("Authorization") String authHeader) {

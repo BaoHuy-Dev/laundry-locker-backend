@@ -146,7 +146,7 @@ public class OrderController {
   @Operation(
       summary = "Reset Order PIN",
       description = "Generate a new PIN code for dropping off or picking up items")
-  @PostMapping("/{orderId}/reset-pin")
+  @PostMapping(UriParamConstants.ORDER_RESET_PIN)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> resetOrderPin(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
@@ -159,7 +159,7 @@ public class OrderController {
   @Operation(
       summary = "Pickup Storage Order",
       description = "Customer remotely opens locker to pick up storage items")
-  @PostMapping("/{orderId}/pickup-storage")
+  @PostMapping(UriParamConstants.ORDER_PICKUP_STORAGE)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> pickupStorageOrder(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {
@@ -314,7 +314,7 @@ public class OrderController {
   @Operation(
       summary = "Create Complaint",
       description = "Submit a complaint about a completed order")
-  @PostMapping("/{orderId}/complaint")
+  @PostMapping(UriParamConstants.ORDER_COMPLAINT)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderComplaintResponse>> createComplaint(
       @PathVariable Long orderId,
@@ -329,7 +329,7 @@ public class OrderController {
 
   /** Get complaints for a specific order. */
   @Operation(summary = "Get Order Complaints", description = "Get all complaints for an order")
-  @GetMapping("/{orderId}/complaints")
+  @GetMapping(UriParamConstants.ORDER_COMPLAINTS)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<List<OrderComplaintResponse>>> getOrderComplaints(
       @PathVariable Long orderId) {
@@ -341,7 +341,7 @@ public class OrderController {
   @Operation(
       summary = "Get My Complaints",
       description = "Get all complaints submitted by current user")
-  @GetMapping("/my-complaints")
+  @GetMapping(UriParamConstants.MY_COMPLAINTS)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<List<OrderComplaintResponse>>> getMyComplaints(
       @RequestHeader("Authorization") String authHeader) {
@@ -355,7 +355,7 @@ public class OrderController {
       summary = "Reorder",
       description =
           "Create a new order by cloning locker, services, and type from a previous order")
-  @PostMapping("/{orderId}/reorder")
+  @PostMapping(UriParamConstants.ORDER_REORDER)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<OrderResponse>> reorderFromExisting(
       @PathVariable Long orderId, @RequestHeader("Authorization") String authHeader) {

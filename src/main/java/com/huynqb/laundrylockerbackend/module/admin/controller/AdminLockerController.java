@@ -65,14 +65,14 @@ public class AdminLockerController {
   }
 
   @Operation(summary = "Get All Reports", description = "Retrieve all locker reports")
-  @GetMapping("/reports")
+  @GetMapping(UriParamConstants.ADMIN_LOCKER_REPORTS)
   public ResponseEntity<ApiResponse<Page<LockerReportResponse>>> getAllReports(Pageable pageable) {
     return ResponseEntity.ok(
         responseHelper.success(adminLockerService.getAllReports(pageable), "REPORTS_RETRIEVED"));
   }
 
   @Operation(summary = "Resolve Report", description = "Mark a locker report as resolved")
-  @PutMapping("/reports/{id}/resolve")
+  @PutMapping(UriParamConstants.ADMIN_LOCKER_REPORTS_RESOLVE)
   public ResponseEntity<ApiResponse<LockerReportResponse>> resolveReport(@PathVariable Long id) {
     return ResponseEntity.ok(
         responseHelper.success(adminLockerService.resolveReport(id), "REPORT_RESOLVED"));

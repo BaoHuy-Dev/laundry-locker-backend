@@ -148,7 +148,7 @@ public class PaymentController {
 
   /** Get refunds for an order. */
   @Operation(summary = "Get Order Refunds", description = "Get all refunds for an order")
-  @GetMapping("/order/{orderId}/refunds")
+  @GetMapping(UriParamConstants.PAYMENT_ORDER_REFUNDS)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<List<RefundResponse>>> getOrderRefunds(
       @PathVariable Long orderId) {

@@ -1,5 +1,6 @@
 package com.huynqb.laundrylockerbackend.module.admin.controller;
 
+import com.huynqb.laundrylockerbackend.core.constant.TagConstants;
 import com.huynqb.laundrylockerbackend.core.constant.UriParamConstants;
 import com.huynqb.laundrylockerbackend.core.dto.ApiResponse;
 import com.huynqb.laundrylockerbackend.core.dto.ResponseHelper;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** REST controller for system health monitoring (Admin only). */
-@Tag(name = "Admin - System", description = "System health and monitoring APIs")
+@Tag(name = TagConstants.ROOT_TAG_ADMIN_SYSTEM, description = "System health and monitoring APIs")
 @RequestMapping(UriParamConstants.ROOT_URI_ADMIN)
 @RestController
 @RequiredArgsConstructor

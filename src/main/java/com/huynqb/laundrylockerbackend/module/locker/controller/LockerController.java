@@ -84,7 +84,7 @@ public class LockerController {
   }
 
   @Operation(summary = "Report Locker", description = "Report a broken locker")
-  @PostMapping("/{id}/report")
+  @PostMapping(UriParamConstants.LOCKER_REPORT)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<LockerReportResponse>> reportLocker(
       @PathVariable Long id,
@@ -100,7 +100,7 @@ public class LockerController {
   @Operation(
       summary = "Get My Locker Reports",
       description = "Get all locker reports submitted by the current user")
-  @GetMapping("/my-reports")
+  @GetMapping(UriParamConstants.LOCKER_MY_REPORTS)
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<ApiResponse<List<LockerReportResponse>>> getMyReports(
       @RequestHeader("Authorization") String authHeader) {
