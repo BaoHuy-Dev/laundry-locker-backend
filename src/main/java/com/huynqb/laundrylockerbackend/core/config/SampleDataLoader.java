@@ -164,7 +164,9 @@ public class SampleDataLoader {
       boolean sampleDataExists = userCount > 5;
 
       if (sampleDataExists && !forceReload) {
+        ensureBinhTestPoints();
         log.info("   Status: SKIPPED (sample data exists)");
+        log.info("   Applied test points override for truongnguyenthaibinh1050@gmail.com = 300000");
         log.info("   Set app.data.force-reload=true to reload.");
         log.info("========================================");
         return;
@@ -181,6 +183,33 @@ public class SampleDataLoader {
       printSummary();
       log.info("========================================");
     };
+  }
+
+  @Transactional
+  public void ensureBinhTestPoints() {
+    userRepository
+        .findByEmail("truongnguyenthaibinh1050@gmail.com")
+        .ifPresent(
+            binh -> {
+              LoyaltyAccount account =
+                  loyaltyAccountRepository
+                      .findByUserId(binh.getId())
+                      .orElseGet(
+                          () ->
+                              LoyaltyAccount.builder()
+                                  .user(binh)
+                                  .pointsBalance(0L)
+                                  .totalPointsEarned(0L)
+                                  .totalPointsRedeemed(0L)
+                                  .totalAmountSpent(BigDecimal.ZERO)
+                                  .build());
+
+              account.setPointsBalance(300000L);
+              account.setTotalPointsEarned(303300L);
+              account.setTotalPointsRedeemed(3300L);
+              account.setTotalAmountSpent(new BigDecimal("2850000"));
+              loyaltyAccountRepository.save(account);
+            });
   }
 
   @Transactional
@@ -2087,12 +2116,21 @@ public class SampleDataLoader {
 
     // ===== Special loyalty account for Bình with HIGH points =====
     User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
-    if (!loyaltyAccountRepository.existsByUserId(binh.getId())) {
+    Optional<LoyaltyAccount> existingBinhAccount =
+        loyaltyAccountRepository.findByUserId(binh.getId());
+    if (existingBinhAccount.isPresent()) {
+      LoyaltyAccount account = existingBinhAccount.get();
+      account.setPointsBalance(300000L);
+      account.setTotalPointsEarned(303300L);
+      account.setTotalPointsRedeemed(3300L);
+      account.setTotalAmountSpent(new BigDecimal("2850000"));
+      loyaltyAccountRepository.save(account);
+    } else {
       loyaltyAccountRepository.save(
           LoyaltyAccount.builder()
               .user(binh)
-              .pointsBalance(5200L)
-              .totalPointsEarned(8500L)
+              .pointsBalance(300000L)
+              .totalPointsEarned(303300L)
               .totalPointsRedeemed(3300L)
               .totalAmountSpent(new BigDecimal("2850000"))
               .build());
@@ -2153,7 +2191,8 @@ public class SampleDataLoader {
     User binh = findUserByEmail("truongnguyenthaibinh1050@gmail.com");
     long binhBalance = 0;
 
-    // Multiple EARN transactions (simulating points earned from each completed order)
+    // Multiple EARN transactions (simulating points earned from each completed
+    // order)
     long[] earnAmounts = {520, 350, 450, 850, 480, 380, 720, 400, 1000, 500, 600, 750, 1500};
     String[] earnDescs = {
       "Điểm từ đơn giặt quần áo hàng tuần",
@@ -2620,11 +2659,14 @@ public class SampleDataLoader {
                   .endDate(LocalDateTime.now().plusMonths(i % 6 + 1))
                   .totalUsageLimit(Integer.parseInt(data[5]) > 0 ? Integer.parseInt(data[5]) : null)
                   .perUserLimit(i % 3 + 1)
-                  .isActive(i < 15)
+                  .isActive(true)
                   .priority(10 - (i % 10))
                   .acquisitionType(
                       i < 15 ? Promotion.AcquisitionType.CODE : Promotion.AcquisitionType.POINTS)
-                  .pointsRequired(i >= 15 ? (i - 14) * 100 : null)
+                  // POINTS rewards: reasonable cost (10 000 / 50 000 / 100 000 / 200 000 / 300
+                  // 000)
+                  .pointsRequired(
+                      i >= 15 ? new int[] {10000, 50000, 100000, 200000, 300000}[i - 15] : null)
                   .build());
       promotions.add(promo);
     }

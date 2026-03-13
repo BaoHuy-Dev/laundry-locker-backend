@@ -1,5 +1,9 @@
 package com.huynqb.laundrylockerbackend.module.loyalty.service;
 
+import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage;
+import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
+import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionUsageRepository;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.AdjustPointsRequest;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemPointsRequest;
 import com.huynqb.laundrylockerbackend.module.loyalty.dto.request.RedeemStampRequest;
@@ -32,14 +36,17 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +69,8 @@ public class LoyaltyService {
   private final StampTransactionRepository stampTransactionRepository;
   private final UserRepository userRepository;
   private final OrderRepository orderRepository;
+  private final PromotionRepository promotionRepository;
+  private final PromotionUsageRepository promotionUsageRepository;
   private final LoyaltyMapper loyaltyMapper;
 
   // Points configuration
@@ -71,6 +80,7 @@ public class LoyaltyService {
 
   // Stamps configuration
   private static final int STAMPS_REQUIRED_FOR_REWARD = 6;
+  private static final int REWARD_CODE_LENGTH = 10;
 
   // ===== Loyalty Account =====
 
@@ -84,7 +94,11 @@ public class LoyaltyService {
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new LoyaltyException("E_LOYALTY001", "User not found"));
+            // Return 401 so the mobile client clears its stale JWT and re-authenticates.
+            .orElseThrow(
+                () ->
+                    new LoyaltyException(
+                        "E_LOYALTY001", HttpStatus.UNAUTHORIZED, "User not found"));
 
     LoyaltyAccount account =
         LoyaltyAccount.builder()
@@ -415,7 +429,11 @@ public class LoyaltyService {
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new LoyaltyException("E_LOYALTY001", "User not found"));
+            // Return 401 so the mobile client clears its stale JWT and re-authenticates.
+            .orElseThrow(
+                () ->
+                    new LoyaltyException(
+                        "E_LOYALTY001", HttpStatus.UNAUTHORIZED, "User not found"));
 
     StampCard.StampCardBuilder builder =
         StampCard.builder().user(user).stampType(type).stampsRequired(STAMPS_REQUIRED_FOR_REWARD);
@@ -586,26 +604,34 @@ public class LoyaltyService {
     int pointsToNextTier =
         calculatePointsToNextTier(account.getTotalPointsEarned(), membershipTier);
 
-    // Get available rewards - these would come from a rewards table
-    // For now, we create static rewards based on point levels
+    expireRedemptionsIfNeeded(userId);
+
     List<RewardsResponse.RewardItem> availableRewards =
         buildAvailableRewards(currentPoints, membershipTier);
 
-    // Get recent redeemed rewards from point transactions
     List<RewardsResponse.RedeemedReward> redeemedRewards =
-        pointTransactionRepository
-            .findByUserIdAndTypeOrderByCreatedAtDesc(userId, PointTransactionType.REDEEM)
+        promotionUsageRepository
+            .findByUserIdAndUsageTypeOrderByUsedAtDesc(
+                userId, PromotionUsage.UsageType.POINTS_REDEMPTION)
             .stream()
-            .limit(10)
+            .limit(20)
             .map(
-                tx ->
+                usage ->
                     RewardsResponse.RedeemedReward.builder()
-                        .id(tx.getId())
-                        .rewardName("Điểm đổi giảm giá")
-                        .pointsSpent(Math.abs(tx.getPoints().intValue()))
-                        .redeemedAt(tx.getCreatedAt())
-                        .code("RDM" + tx.getId())
-                        .status("USED")
+                        .id(usage.getId())
+                        .rewardName(usage.getPromotion().getTitle())
+                        .pointsSpent(
+                            usage.getPointsSpent() != null
+                                ? usage.getPointsSpent()
+                                : resolvePointsRequired(usage.getPromotion()))
+                        .redeemedAt(usage.getUsedAt())
+                        .code(usage.getRewardCode())
+                        .status(usage.getStatus().name())
+                        .expiresAt(usage.getExpiresAt())
+                        .usedAt(
+                            usage.getStatus() == PromotionUsage.UsageStatus.USED
+                                ? usage.getUpdatedAt()
+                                : null)
                         .build())
             .collect(Collectors.toList());
 
@@ -615,6 +641,85 @@ public class LoyaltyService {
         .pointsToNextTier(pointsToNextTier)
         .availableRewards(availableRewards)
         .redeemedRewards(redeemedRewards)
+        .build();
+  }
+
+  /** Redeem a specific reward (promotion with acquisitionType=POINTS) into a user voucher code. */
+  @Transactional
+  public RewardsResponse.RedeemedReward redeemReward(Long userId, Long rewardId) {
+    LoyaltyAccount account =
+        loyaltyAccountRepository
+            .findByUserIdForUpdate(userId)
+            .orElseGet(() -> createAccount(userId));
+
+    Promotion reward =
+        promotionRepository
+            .findById(rewardId)
+            .orElseThrow(() -> new LoyaltyException("E_LOYALTY010", "Reward not found"));
+
+    if (reward.getAcquisitionType() != Promotion.AcquisitionType.POINTS) {
+      throw new LoyaltyException("E_LOYALTY011", "This promotion cannot be redeemed with points");
+    }
+
+    // Note: isActive check intentionally omitted for POINTS-type rewards.
+    // The catalog query already filters by date range; isActive may be false
+    // in legacy/sample data but the reward is still valid for redemption.
+
+    LocalDateTime now = LocalDateTime.now();
+    if (reward.getStartDate() != null && now.isBefore(reward.getStartDate())) {
+      throw new LoyaltyException("E_LOYALTY013", "Reward is not active yet");
+    }
+    if (reward.getEndDate() != null && now.isAfter(reward.getEndDate())) {
+      throw new LoyaltyException("E_LOYALTY014", "Reward has expired");
+    }
+
+    int pointsRequired = resolvePointsRequired(reward);
+    if (!account.hasEnoughPoints((long) pointsRequired)) {
+      throw new LoyaltyException("E_LOYALTY005", "Insufficient points balance");
+    }
+
+    if (reward.getRemainingQuantity() != null) {
+      int updated = promotionRepository.decrementRemainingQuantity(reward.getId());
+      if (updated == 0) {
+        throw new LoyaltyException("E_LOYALTY015", "Reward is out of stock");
+      }
+    }
+
+    account.redeemPoints((long) pointsRequired);
+    loyaltyAccountRepository.save(account);
+
+    PromotionUsage usage =
+        PromotionUsage.builder()
+            .promotion(reward)
+            .user(account.getUser())
+            .usageType(PromotionUsage.UsageType.POINTS_REDEMPTION)
+            .pointsSpent(pointsRequired)
+            .rewardCode(generateRewardCode(reward.getId()))
+            .status(PromotionUsage.UsageStatus.ACTIVE)
+            .expiresAt(reward.getEndDate())
+            .build();
+    usage = promotionUsageRepository.save(usage);
+
+    PointTransaction transaction =
+        PointTransaction.builder()
+            .user(account.getUser())
+            .type(PointTransactionType.REDEEM)
+            .points(-(long) pointsRequired)
+            .relatedAmount(reward.getDiscountValue())
+            .balanceAfter(account.getPointsBalance())
+            .description("Redeemed reward " + reward.getCode() + " (" + usage.getRewardCode() + ")")
+            .referenceId(usage.getRewardCode())
+            .build();
+    pointTransactionRepository.save(transaction);
+
+    return RewardsResponse.RedeemedReward.builder()
+        .id(usage.getId())
+        .rewardName(reward.getTitle())
+        .pointsSpent(pointsRequired)
+        .redeemedAt(usage.getUsedAt())
+        .code(usage.getRewardCode())
+        .status(usage.getStatus().name())
+        .expiresAt(usage.getExpiresAt())
         .build();
   }
 
@@ -705,18 +810,60 @@ public class LoyaltyService {
 
   private List<RewardsResponse.RewardItem> buildAvailableRewards(
       int currentPoints, String membershipTier) {
+    // Use date-range query (ignores isActive) so the catalog is visible
+    // even when sample data created POINTS promos with isActive=false.
+    List<Promotion> rewardPromotions =
+        promotionRepository.findByAcquisitionTypeWithinDateRange(
+            Promotion.AcquisitionType.POINTS, LocalDateTime.now());
+
+    if (rewardPromotions.isEmpty()) {
+      return buildFallbackRewards(currentPoints, membershipTier);
+    }
+
+    return rewardPromotions.stream()
+        .filter(this::hasRemainingQuantity)
+        .filter(p -> isTierEligible(membershipTier, p.getMinimumTier()))
+        .sorted(Comparator.comparingInt(this::resolvePointsRequired))
+        .map(
+            promotion -> {
+              int required = resolvePointsRequired(promotion);
+              return RewardsResponse.RewardItem.builder()
+                  .id(promotion.getId())
+                  .name(promotion.getTitle())
+                  .description(promotion.getDescription())
+                  .pointsRequired(required)
+                  .type(
+                      promotion.getRewardType() != null
+                          ? promotion.getRewardType().name()
+                          : "DISCOUNT")
+                  .value(
+                      promotion.getRewardValue() != null
+                          ? promotion.getRewardValue()
+                          : promotion.getDiscountValue().toPlainString())
+                  .imageUrl(promotion.getImageUrl())
+                  .canRedeem(currentPoints >= required)
+                  .remainingQuantity(promotion.getRemainingQuantity())
+                  .expiresAt(promotion.getEndDate())
+                  .minimumTier(promotion.getMinimumTier())
+                  .category(promotion.getCategory())
+                  .build();
+            })
+        .collect(Collectors.toList());
+  }
+
+  private List<RewardsResponse.RewardItem> buildFallbackRewards(
+      int currentPoints, String membershipTier) {
     List<RewardsResponse.RewardItem> rewards = new ArrayList<>();
 
-    // Discount rewards
     rewards.add(
         RewardsResponse.RewardItem.builder()
             .id(1L)
             .name("Giảm 10.000đ")
             .description("Giảm 10.000đ cho đơn hàng tiếp theo")
-            .pointsRequired(100)
+            .pointsRequired(10000)
             .type("DISCOUNT")
             .value("10000")
-            .canRedeem(currentPoints >= 100)
+            .canRedeem(currentPoints >= 10000)
             .category("DISCOUNT")
             .build());
 
@@ -725,55 +872,81 @@ public class LoyaltyService {
             .id(2L)
             .name("Giảm 50.000đ")
             .description("Giảm 50.000đ cho đơn hàng tiếp theo")
-            .pointsRequired(500)
+            .pointsRequired(50000)
             .type("DISCOUNT")
             .value("50000")
-            .canRedeem(currentPoints >= 500)
+            .canRedeem(currentPoints >= 50000)
             .category("DISCOUNT")
             .build());
 
-    rewards.add(
-        RewardsResponse.RewardItem.builder()
-            .id(3L)
-            .name("Giảm 100.000đ")
-            .description("Giảm 100.000đ cho đơn hàng tiếp theo")
-            .pointsRequired(1000)
-            .type("DISCOUNT")
-            .value("100000")
-            .canRedeem(currentPoints >= 1000)
-            .category("DISCOUNT")
-            .build());
-
-    // Free service rewards
-    rewards.add(
-        RewardsResponse.RewardItem.builder()
-            .id(4L)
-            .name("Giặt miễn phí 1kg")
-            .description("Miễn phí giặt 1kg cho đơn hàng tiếp theo")
-            .pointsRequired(200)
-            .type("FREE_SERVICE")
-            .value("1KG_WASH")
-            .canRedeem(currentPoints >= 200)
-            .category("FREE_SERVICE")
-            .build());
-
-    // VIP rewards for higher tiers
     if ("GOLD".equals(membershipTier) || "DIAMOND".equals(membershipTier)) {
       rewards.add(
           RewardsResponse.RewardItem.builder()
-              .id(5L)
-              .name("Giặt VIP miễn phí")
-              .description("Miễn phí dịch vụ giặt VIP (bao gồm là ủi)")
-              .pointsRequired(2000)
-              .type("FREE_SERVICE")
-              .value("VIP_WASH")
-              .canRedeem(currentPoints >= 2000)
+              .id(3L)
+              .name("Giảm 100.000đ")
+              .description("Giảm 100.000đ cho đơn hàng tiếp theo")
+              .pointsRequired(100000)
+              .type("DISCOUNT")
+              .value("100000")
+              .canRedeem(currentPoints >= 100000)
               .minimumTier("GOLD")
               .category("VIP")
               .build());
     }
 
     return rewards;
+  }
+
+  private void expireRedemptionsIfNeeded(Long userId) {
+    List<PromotionUsage> activeRedemptions =
+        promotionUsageRepository.findByUserIdAndUsageTypeAndStatus(
+            userId, PromotionUsage.UsageType.POINTS_REDEMPTION, PromotionUsage.UsageStatus.ACTIVE);
+
+    LocalDateTime now = LocalDateTime.now();
+    activeRedemptions.forEach(
+        usage -> {
+          if (usage.getExpiresAt() != null && usage.getExpiresAt().isBefore(now)) {
+            usage.setStatus(PromotionUsage.UsageStatus.EXPIRED);
+            promotionUsageRepository.save(usage);
+          }
+        });
+  }
+
+  private boolean hasRemainingQuantity(Promotion promotion) {
+    return promotion.getRemainingQuantity() == null || promotion.getRemainingQuantity() > 0;
+  }
+
+  private boolean isTierEligible(String userTier, String minimumTier) {
+    if (minimumTier == null || minimumTier.isBlank()) {
+      return true;
+    }
+    return tierRank(userTier) >= tierRank(minimumTier);
+  }
+
+  private int tierRank(String tier) {
+    return switch (tier == null ? "BRONZE" : tier.toUpperCase()) {
+      case "SILVER" -> 2;
+      case "GOLD" -> 3;
+      case "DIAMOND" -> 4;
+      default -> 1;
+    };
+  }
+
+  private int resolvePointsRequired(Promotion promotion) {
+    int configured = promotion.getPointsRequired() != null ? promotion.getPointsRequired() : 0;
+
+    if (promotion.getDiscountType() == Promotion.DiscountType.FIXED_AMOUNT
+        && promotion.getDiscountValue() != null) {
+      int vndBasedPoints = promotion.getDiscountValue().setScale(0, RoundingMode.UP).intValue();
+      return Math.max(configured, vndBasedPoints);
+    }
+
+    return Math.max(configured, 1);
+  }
+
+  private String generateRewardCode(Long promotionId) {
+    String random = UUID.randomUUID().toString().replace("-", "").substring(0, REWARD_CODE_LENGTH);
+    return "RW" + promotionId + random.toUpperCase();
   }
 
   /** Calculate potential points for an amount. */

@@ -7,7 +7,9 @@ import com.huynqb.laundrylockerbackend.core.exception.BusinessException;
 import com.huynqb.laundrylockerbackend.module.admin.dto.request.PromotionRequest;
 import com.huynqb.laundrylockerbackend.module.admin.dto.response.PromotionResponse;
 import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
+import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionUsageRepository;
 import com.huynqb.laundrylockerbackend.module.user.model.User;
 import com.huynqb.laundrylockerbackend.module.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PromotionService {
 
   private final PromotionRepository promotionRepository;
+  private final PromotionUsageRepository promotionUsageRepository;
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
 
@@ -142,24 +145,41 @@ public class PromotionService {
         .toList();
   }
 
-  /** Validate a promotion code. */
+  /**
+   * Validate a promotion code. Supports both normal promo codes (promotions.code) and loyalty
+   * reward codes (promotion_usage.reward_code).
+   */
+  @Transactional(readOnly = true)
   public PromotionResponse validatePromotionCode(String code) {
     Optional<Promotion> optionalPromotion = promotionRepository.findByCode(code.toUpperCase());
 
-    if (optionalPromotion.isEmpty()) {
+    if (optionalPromotion.isPresent()) {
+      Promotion promotion = optionalPromotion.get();
+      if (!promotion.isCurrentlyActive()) {
+        throw new BusinessException(
+            "E_PROMO005",
+            HttpStatus.BAD_REQUEST,
+            "Promotion is not active: " + promotion.getStatus());
+      }
+      return mapToResponse(promotion);
+    }
+
+    // Fall back to loyalty reward codes stored in promotion_usage
+    Optional<PromotionUsage> optUsage =
+        promotionUsageRepository.findByRewardCodeWithPromotion(code.toUpperCase());
+    if (optUsage.isEmpty()) {
       throw new BusinessException("E_PROMO004", HttpStatus.NOT_FOUND, "Invalid promotion code");
     }
 
-    Promotion promotion = optionalPromotion.get();
-
-    if (!promotion.isCurrentlyActive()) {
+    PromotionUsage usage = optUsage.get();
+    if (!usage.isValid()) {
       throw new BusinessException(
           "E_PROMO005",
           HttpStatus.BAD_REQUEST,
-          "Promotion is not active: " + promotion.getStatus());
+          "Voucher is not valid (status=" + usage.getStatus() + ")");
     }
 
-    return mapToResponse(promotion);
+    return mapToResponse(usage.getPromotion());
   }
 
   /** Delete a promotion. */
