@@ -9,6 +9,7 @@ import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.partner.enums.AccessCodeAction;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +100,19 @@ public class OrderBoxHelper {
     if (order.getReceiveBoxes() != null) {
       boxes.addAll(order.getReceiveBoxes());
     }
+
+    // Fallback for legacy/partner flow: READY orders may not have receive boxes
+    // assigned yet.
+    // In that case, reuse send boxes so staff can still open the locker to return
+    // items.
+    if (boxes.isEmpty()) {
+      addSendBoxes(order, boxes);
+      if (!boxes.isEmpty()) {
+        log.warn(
+            "Order {} has no receive boxes for RETURN action, fallback to send boxes",
+            order.getId());
+      }
+    }
   }
 
   private void handleCollectAction(Order order) {
@@ -108,6 +122,16 @@ public class OrderBoxHelper {
   }
 
   private void handleReturnAction(Order order) {
+    // Ensure receive box fields are set for customer pickup PIN flow.
+    if (order.getReceiveBox() == null && order.getSendBox() != null) {
+      order.setReceiveBox(order.getSendBox());
+    }
+    if ((order.getReceiveBoxes() == null || order.getReceiveBoxes().isEmpty())
+        && order.getSendBoxes() != null
+        && !order.getSendBoxes().isEmpty()) {
+      order.setReceiveBoxes(new HashSet<>(order.getSendBoxes()));
+    }
+
     order.setStatus(OrderStatus.RETURNED);
     order.setPinCode(CodeGenerator.generatePinCode());
     order.setPinCodeIssuedAt(LocalDateTime.now());
