@@ -3,6 +3,7 @@ package com.huynqb.laundrylockerbackend.module.partner.service;
 import com.huynqb.laundrylockerbackend.core.util.CodeGenerator;
 import com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService;
 import com.huynqb.laundrylockerbackend.module.locker.model.Box;
+import com.huynqb.laundrylockerbackend.module.locker.model.Locker;
 import com.huynqb.laundrylockerbackend.module.notification.service.NotificationService;
 import com.huynqb.laundrylockerbackend.module.order.model.Order;
 import com.huynqb.laundrylockerbackend.module.order.repository.OrderRepository;
@@ -91,7 +92,8 @@ public class StaffAccessCodeService {
       return buildFailureResponse(request.getOrderId(), "Invalid or expired access code");
     }
 
-    // If orderId is provided, validate it matches; otherwise derive from access code
+    // If orderId is provided, validate it matches; otherwise derive from access
+    // code
     Long orderId = request.getOrderId();
     if (orderId != null) {
       if (!accessCode.getOrder().getId().equals(orderId)) {
@@ -117,6 +119,12 @@ public class StaffAccessCodeService {
       return buildFailureResponse(order.getId(), "No boxes found for this order");
     }
 
+    Locker locker = resolveLocker(order, boxes);
+    if (locker == null) {
+      return buildFailureResponse(
+          order.getId(), order.getStatus().name(), "Locker not found for this order");
+    }
+
     // Process unlock
     processUnlock(accessCode, order, request.getStaffName());
 
@@ -127,7 +135,7 @@ public class StaffAccessCodeService {
 
     // Publish MQTT unlock command to ESP8266 for each box
     try {
-      String deviceId = order.getLocker().getCode();
+      String deviceId = locker.getCode();
       for (Box box : boxes) {
         lockerMqttService.sendUnlockCommand(deviceId, box.getBoxNumber());
       }
@@ -145,7 +153,7 @@ public class StaffAccessCodeService {
         order.getId(),
         request.getStaffName());
 
-    return buildSuccessResponse(order, accessCode.getAction(), boxes);
+    return buildSuccessResponse(order, locker, accessCode.getAction(), boxes);
   }
 
   /** Get access codes by order ID. */
@@ -269,6 +277,16 @@ public class StaffAccessCodeService {
     }
   }
 
+  private Locker resolveLocker(Order order, List<Box> boxes) {
+    if (order.getLocker() != null) {
+      return order.getLocker();
+    }
+    if (!boxes.isEmpty() && boxes.get(0).getLocker() != null) {
+      return boxes.get(0).getLocker();
+    }
+    return null;
+  }
+
   // ===== Response Builders =====
 
   private StaffCodeUnlockResponse buildFailureResponse(Long orderId, String message) {
@@ -290,17 +308,16 @@ public class StaffAccessCodeService {
   }
 
   private StaffCodeUnlockResponse buildSuccessResponse(
-      Order order, AccessCodeAction action, List<Box> boxes) {
+      Order order, Locker locker, AccessCodeAction action, List<Box> boxes) {
     return StaffCodeUnlockResponse.builder()
         .success(true)
         .orderId(order.getId())
         .orderStatus(order.getStatus().name())
         .action(action)
         .boxes(accessCodeMapper.toBoxInfoList(boxes))
-        .lockerCode(order.getLocker().getCode())
-        .lockerName(order.getLocker().getName())
-        .lockerAddress(
-            order.getLocker().getStore() != null ? order.getLocker().getStore().getAddress() : null)
+        .lockerCode(locker.getCode())
+        .lockerName(locker.getName())
+        .lockerAddress(locker.getStore() != null ? locker.getStore().getAddress() : null)
         .unlockToken(CodeGenerator.generateToken())
         .unlockTimestamp(System.currentTimeMillis())
         .message("Box unlocked successfully")
