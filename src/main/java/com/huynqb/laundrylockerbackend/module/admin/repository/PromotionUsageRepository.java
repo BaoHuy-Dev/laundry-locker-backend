@@ -38,8 +38,16 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
       @Param("usageType") UsageType usageType,
       @Param("status") UsageStatus status);
 
+  /** Find all loyalty redemptions for a user. */
+  List<PromotionUsage> findByUserIdAndUsageTypeOrderByUsedAtDesc(Long userId, UsageType usageType);
+
   /** Find by reward code. */
   Optional<PromotionUsage> findByRewardCode(String rewardCode);
+
+  /** Find by reward code with promotion eagerly loaded to avoid lazy proxy issues. */
+  @Query(
+      "SELECT pu FROM PromotionUsage pu JOIN FETCH pu.promotion WHERE UPPER(pu.rewardCode) = UPPER(:rewardCode)")
+  Optional<PromotionUsage> findByRewardCodeWithPromotion(@Param("rewardCode") String rewardCode);
 
   /** Find expired but still active usages. */
   @Query(

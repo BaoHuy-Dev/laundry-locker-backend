@@ -137,6 +137,17 @@ public class LoyaltyController {
   }
 
   @Operation(
+      summary = "Redeem Reward",
+      description = "Redeem a loyalty reward and receive a voucher code for order creation")
+  @PostMapping(UriParamConstants.LOYALTY_REDEEM_REWARD)
+  public ResponseEntity<ApiResponse<RewardsResponse.RedeemedReward>> redeemReward(
+      @RequestHeader("Authorization") String authHeader, @PathVariable Long rewardId) {
+    Long userId = jwtTokenProvider.getUserIdFromToken(authHeader);
+    RewardsResponse.RedeemedReward redeemedReward = loyaltyService.redeemReward(userId, rewardId);
+    return ResponseEntity.ok(responseHelper.success(redeemedReward, "REWARD_REDEEMED"));
+  }
+
+  @Operation(
       summary = "Get Expiring Points",
       description = "Get points that will expire soon and recommendations")
   @GetMapping(UriParamConstants.LOYALTY_EXPIRING_POINTS)

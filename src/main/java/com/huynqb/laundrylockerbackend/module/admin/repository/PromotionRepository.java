@@ -28,6 +28,7 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
       "SELECT p FROM Promotion p WHERE p.isActive = true "
           + "AND p.startDate <= :now AND p.endDate >= :now "
           + "AND (p.totalUsageLimit IS NULL OR p.currentUsageCount < p.totalUsageLimit) "
+          + "AND p.acquisitionType <> 'POINTS' "
           + "ORDER BY p.priority DESC")
   List<Promotion> findActivePromotions(@Param("now") LocalDateTime now);
 
@@ -75,7 +76,8 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
           + "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))")
   Page<Promotion> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
-  // ========== LOYALTY REWARDS QUERIES (consolidated from loyalty_rewards) ==========
+  // ========== LOYALTY REWARDS QUERIES (consolidated from loyalty_rewards)
+  // ==========
 
   /** Find loyalty rewards (promotions with acquisition_type = POINTS). */
   @Query(
@@ -85,6 +87,18 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
           + "AND (p.endDate IS NULL OR p.endDate >= :now) "
           + "ORDER BY p.pointsRequired ASC")
   List<Promotion> findByAcquisitionTypeAndActive(
+      @Param("type") AcquisitionType type, @Param("now") LocalDateTime now);
+
+  /**
+   * Find POINTS-type promotions regardless of isActive flag. Used so the reward catalog is visible
+   * even when isActive=false (e.g. sample data).
+   */
+  @Query(
+      "SELECT p FROM Promotion p WHERE p.acquisitionType = :type "
+          + "AND (p.startDate IS NULL OR p.startDate <= :now) "
+          + "AND (p.endDate IS NULL OR p.endDate >= :now) "
+          + "ORDER BY p.pointsRequired ASC NULLS LAST")
+  List<Promotion> findByAcquisitionTypeWithinDateRange(
       @Param("type") AcquisitionType type, @Param("now") LocalDateTime now);
 
   /** Find loyalty rewards by category. */

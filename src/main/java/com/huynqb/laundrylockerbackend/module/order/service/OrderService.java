@@ -1,7 +1,9 @@
 package com.huynqb.laundrylockerbackend.module.order.service;
 
 import com.huynqb.laundrylockerbackend.module.admin.model.Promotion;
+import com.huynqb.laundrylockerbackend.module.admin.model.PromotionUsage;
 import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionRepository;
+import com.huynqb.laundrylockerbackend.module.admin.repository.PromotionUsageRepository;
 import com.huynqb.laundrylockerbackend.module.iot.service.LockerMqttService;
 import com.huynqb.laundrylockerbackend.module.laundry.model.LaundryService;
 import com.huynqb.laundrylockerbackend.module.laundry.repository.LaundryServiceRepository;
@@ -64,6 +66,7 @@ public class OrderService {
   private final PaymentRepository paymentRepository;
   private final UserRepository userRepository;
   private final PromotionRepository promotionRepository;
+  private final PromotionUsageRepository promotionUsageRepository;
   private final LockerMqttService lockerMqttService;
 
   private final OrderMapper orderMapper;
@@ -493,7 +496,8 @@ public class OrderService {
       throw new OrderException("E_ORDER009"); // Order does not belong to user
     }
 
-    // Validate status: Only allow resetting PIN if the order is INITIALIZED (user needs to open box
+    // Validate status: Only allow resetting PIN if the order is INITIALIZED (user
+    // needs to open box
     // to drop off)
     // or RETURNED (user needs to open box to pick up)
     validateOrderStatus(
@@ -1006,19 +1010,38 @@ public class OrderService {
     List<String> appliedCodes = new ArrayList<>();
 
     for (String code : codesToApply) {
+      Promotion promotion;
+      PromotionUsage rewardUsage = null;
+
       Optional<Promotion> optPromotion = promotionRepository.findByCode(code);
+      if (optPromotion.isPresent()) {
+        promotion = optPromotion.get();
 
-      if (optPromotion.isEmpty()) {
-        log.warn("Promotion code not found: {}", code);
-        continue;
-      }
+        // Validate normal promotion is active
+        if (!promotion.isCurrentlyActive()) {
+          log.warn("Promotion {} is not active: {}", code, promotion.getStatus());
+          continue;
+        }
+      } else {
+        Optional<PromotionUsage> optUsage = promotionUsageRepository.findByRewardCode(code);
+        if (optUsage.isEmpty()) {
+          log.warn("Promotion code not found: {}", code);
+          continue;
+        }
 
-      Promotion promotion = optPromotion.get();
+        rewardUsage = optUsage.get();
+        promotion = rewardUsage.getPromotion();
 
-      // Validate promotion is active
-      if (!promotion.isCurrentlyActive()) {
-        log.warn("Promotion {} is not active: {}", code, promotion.getStatus());
-        continue;
+        // Reward code must belong to the order owner and still be valid.
+        if (!rewardUsage.getUser().getId().equals(order.getSender().getId())) {
+          log.warn(
+              "Reward code {} does not belong to order owner {}", code, order.getSender().getId());
+          continue;
+        }
+        if (!rewardUsage.isValid()) {
+          log.warn("Reward code {} is not valid (status={})", code, rewardUsage.getStatus());
+          continue;
+        }
       }
 
       // Validate minimum order amount
@@ -1045,8 +1068,13 @@ public class OrderService {
 
       log.info("Applied promotion {}: discount = {}", code, discount);
 
-      // Increment usage count
-      promotionRepository.incrementUsageCount(promotion.getId());
+      if (rewardUsage != null) {
+        rewardUsage.markAsUsed(order);
+        rewardUsage.setDiscountApplied(discount);
+        promotionUsageRepository.save(rewardUsage);
+      } else {
+        promotionRepository.incrementUsageCount(promotion.getId());
+      }
     }
 
     if (!appliedCodes.isEmpty()) {
